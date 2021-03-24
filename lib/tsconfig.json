@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "declaration": true,
+    "allowJs": true,
+    "strict": true,
+    "lib": ["esnext", "dom", "dom.iterable"],
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "noUnusedLocals": false,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "removeComments": true,
+    "baseUrl": "."
+  },
+  "include": ["./**/*.ts"]
+}
