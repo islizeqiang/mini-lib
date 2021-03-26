@@ -42,8 +42,18 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
   const { code } =
     babel.transformFromAstSync(ast, '', {
       ast: true,
-      filename: 'index.js',
-      presets: ['@babel/preset-env', '@babel/preset-typescript'],
+      filename: `index${id}.js`,
+      presets: [
+        [
+          '@babel/preset-env',
+          {
+            targets: {
+              esmodules: true,
+            },
+          },
+        ],
+        '@babel/preset-typescript',
+      ],
       plugins: [
         [
           '@babel/plugin-transform-react-jsx',
@@ -55,7 +65,6 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
       ],
       babelrc: false,
     }) || {};
-
   return {
     id,
     filePath,
@@ -64,7 +73,7 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
   };
 };
 
-function createDependencyGraph(entry: string) {
+const createDependencyGraph = (entry: string) => {
   // 获取模块信息
   const entryInfo = createModuleInfo(entry);
   // 项目依赖树 可能多入口
@@ -80,11 +89,10 @@ function createDependencyGraph(entry: string) {
       graph.map[depPath] = moduleInfo.id;
     }
   }
-
   return graphArr;
-}
+};
 
-function pack(graph: GraphItem[]) {
+const pack = (graph: GraphItem[]) => {
   const moduleArgArr = graph.map((module) => {
     return `${module.id}: {
       factory: (exports, require) => {
@@ -100,20 +108,27 @@ function pack(graph: GraphItem[]) {
     factory(module.exports, localRequire);
     return module.exports;
   }
-  require(0);
+  require(${graph[0].id});
   })({${moduleArgArr.join()}})
   `;
   return iifeBundler;
-}
+};
 
-const type = process.argv[2];
+const main = (entry: string) => {
+  const graph = createDependencyGraph(entry);
+  const deps = graph.map((g) => g.filePath);
+  const data = pack(graph);
+  return { deps, data };
+};
 
-const entry = path.join(__dirname, '../src', `${type}/app.js`);
+export default main;
 
-const graph = createDependencyGraph(entry);
+// const type = 'vue';
 
-const data = pack(graph);
+// const entry = path.join(__dirname, '../src', `${type}/index.js`);
+// const output = path.join(process.cwd(), `dist/main_${type}.js`);
 
-const output = path.join(process.cwd(), `dist/main_${type}.js`);
+// const graph = createDependencyGraph(entry);
+// const data = pack(graph);
 
-fs.outputFile(output, data);
+// fs.outputFile(output, data);

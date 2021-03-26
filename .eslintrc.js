@@ -7,5 +7,6 @@ module.exports = {
     'no-param-reassign': 0,
     'max-classes-per-file': 0,
     'no-unused-vars': 0,
+    'global-require': 0,
   },
 };

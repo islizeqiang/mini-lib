@@ -115,8 +115,6 @@ class Game extends Component {
       );
     });
 
-    console.log('moves: ', moves);
-
     let status;
     if (winner) {
       status = `Winner: ${winner}`;
