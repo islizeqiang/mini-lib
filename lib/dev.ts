@@ -1,10 +1,8 @@
 import bundler from './Webpack';
 import * as path from 'path';
 import * as fs from 'fs-extra';
-// import * as http from 'http';
+import * as http from 'http';
 import { createFsFromVolume, Volume } from 'memfs';
-// @ts-ignore
-const express = require('express');
 
 const outputFileSystem = createFsFromVolume(new Volume());
 
@@ -16,7 +14,6 @@ const watchedBundle: string[] = [];
 
 const getHtmlData = async () => {
   const htmlData = await fs.readFile(html);
-  console.log('htmlData: ', htmlData);
   return htmlData;
 };
 
@@ -71,18 +68,19 @@ void (() => {
   updateEntryHtml();
   compile();
   watchHtml();
+  const port = 7000;
 
-  const app = express();
+  const server = http.createServer((req, res) => {
+    if (req.url === '/') {
+      res.setHeader('Content-Type', 'text/html');
+      res.end(outputFileSystem.readFileSync('/index.html'));
+    } else if (req.url === '/main.js') {
+      res.setHeader('Content-Type', 'text/javascript');
+      res.end(outputFileSystem.readFileSync('/main.js'));
+    }
+  });
 
-  // app.get('/', (req, res) => {
-  //   res.setHeader('Content-Type', 'text/html');
-  //   res.send(outputFileSystem.readFileSync('/index.html'));
-  // });
-
-  // app.get('/main.js', (req, res) => {
-  //   res.setHeader('Content-Type', 'text/javascript');
-  //   res.send(outputFileSystem.readFileSync('/main.js'));
-  // });
-
-  // app.listen(7000);
+  server.listen(port, '127.0.0.1', () => {
+    console.log(`Server is running on http://127.0.0.1:${port}/`);
+  });
 })();

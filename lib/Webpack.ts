@@ -25,8 +25,9 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
   const content = fs.readFileSync(filePath, 'utf-8');
   // 对源代码进行 AST 产出
   const ast = parser.parse(content, {
-    sourceType: 'module',
-    plugins: ['typescript', 'classProperties', 'jsx'],
+    sourceType: 'unambiguous',
+    allowImportExportEverywhere: true,
+    plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
   });
   // 相关模块依赖数组
   const deps: string[] = [];

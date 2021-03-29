@@ -4,8 +4,7 @@
   "description": "",
   "scripts": {
     "start": "parcel src/vue/index.html",
-    "dev": "ts-node lib/dev.ts react",
-    "hot": "node src/webpack-hot/myHMR-webpack-dev-server.js"
+    "dev": "ts-node lib/dev.ts react"
   },
   "dependencies": {
     "@babel/core": "^7.13.10",
@@ -13,7 +12,6 @@
     "@babel/preset-env": "^7.13.10",
     "@babel/preset-typescript": "^7.13.0",
     "@babel/traverse": "^7.13.0",
-    "express": "^4.17.1",
     "fs-extra": "^9.1.0",
     "memfs": "^3.2.0",
     "memory-fs": "^0.5.0",
@@ -22,7 +20,8 @@
   "devDependencies": {
     "@types/babel__core": "^7.1.14",
     "@types/express": "^4.17.11",
-    "@types/fs-extra": "^9.0.8",
+    "@types/fs-extra": "^9.0.9",
+    "@types/node": "^14.14.37",
     "code-fabric": "^1.4.0",
     "parcel-bundler": "^1.12.5",
     "ts-node": "^9.1.1",
