@@ -1,6 +1,5 @@
 import * as React from '../../lib/React';
 
-// eslint-disable-next-line react/no-deprecated
 const { createElement, Component, render } = React;
 
 function calculateWinner(squares) {

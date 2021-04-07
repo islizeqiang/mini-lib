@@ -6,42 +6,30 @@ import { createFsFromVolume, Volume } from 'memfs';
 
 const outputFileSystem = createFsFromVolume(new Volume());
 
-const type = process.argv[2];
-const entryFile = path.resolve(process.cwd(), `src/${type}/index.js`);
-const html = path.resolve(process.cwd(), `src/${type}/index.html`);
-
+const entryDir = process.argv[2];
+const entryFile = path.resolve(process.cwd(), `${entryDir}/index.js`);
+const html = path.resolve(process.cwd(), `${entryDir}/index.html`);
 const watchedBundle: string[] = [];
+let firstSuccess = true;
 
 const getHtmlData = async () => {
   const htmlData = await fs.readFile(html);
   return htmlData;
 };
 
-const compile = () => {
-  const { deps, data } = bundler(entryFile);
-  watchBundle(deps);
-  outputFileSystem.writeFileSync('/main.js', data);
-};
-
-const updateEntryHtml = async () => {
-  const htmlData = await getHtmlData();
-  outputFileSystem.writeFileSync('/index.html', htmlData);
-};
-
-const update = (type: string) => {
-  if (type === 'html') {
-    updateEntryHtml();
-  } else if (type === 'bundle') {
-    compile();
+const output = (file: string, data: string | Buffer) => {
+  outputFileSystem.writeFileSync(file, data);
+  if (firstSuccess) {
+    firstSuccess = false;
+  } else {
+    console.clear();
+    console.log(`${new Date().toLocaleString('zh')} Compiled successfully`);
   }
 };
 
-const watchHtml = () => {
-  fs.watch(html, (event: 'rename' | 'change') => {
-    if (event === 'change') {
-      update('html');
-    }
-  });
+const updateEntryHtml = async () => {
+  const data = await getHtmlData();
+  output('/index.html', data);
 };
 
 const watchBundle = (deps: string[]) => {
@@ -62,6 +50,28 @@ const watchBundle = (deps: string[]) => {
       });
     }
   }
+};
+
+const compile = () => {
+  const { deps, data } = bundler(entryFile);
+  watchBundle(deps);
+  output('/main.js', data);
+};
+
+function update(type: string) {
+  if (type === 'html') {
+    updateEntryHtml();
+  } else if (type === 'bundle') {
+    compile();
+  }
+}
+
+const watchHtml = () => {
+  fs.watch(html, (event: 'rename' | 'change') => {
+    if (event === 'change') {
+      update('html');
+    }
+  });
 };
 
 void (() => {

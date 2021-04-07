@@ -4,6 +4,7 @@ module.exports = {
     'no-void': 0,
     '@typescript-eslint/no-unused-vars': 0,
     'no-restricted-syntax': 0,
+    'no-underscore-dangle': 0,
     'no-param-reassign': 0,
     'max-classes-per-file': 0,
     'no-unused-vars': 0,

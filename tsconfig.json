@@ -20,5 +20,6 @@
     "removeComments": true,
     "baseUrl": "."
   },
-  "include": ["./**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["example"]
 }

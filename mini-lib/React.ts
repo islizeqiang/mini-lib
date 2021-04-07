@@ -1,3 +1,4 @@
+/* eslint-disable guard-for-in */
 const RENDER_TO_DOM = Symbol('render to dom');
 
 type Dict<T> = Record<string | symbol, T>;
@@ -152,15 +153,13 @@ export class Component {
 
           if (i < oldChildren.length) {
             update(oldChild, newChild);
-          } else {
-            if (tailRange !== null) {
-              const range = document.createRange();
-              range.setStart(tailRange.endContainer, tailRange.endOffset);
-              range.setEnd(tailRange.endContainer, tailRange.endOffset);
-              newChild[RENDER_TO_DOM](range);
-              tailRange = range;
-              // TODO
-            }
+          } else if (tailRange !== null) {
+            const range = document.createRange();
+            range.setStart(tailRange.endContainer, tailRange.endOffset);
+            range.setEnd(tailRange.endContainer, tailRange.endOffset);
+            newChild[RENDER_TO_DOM](range);
+            tailRange = range;
+            // TODO
           }
         }
       }
@@ -249,6 +248,7 @@ export function createElement(
   if (typeof type === 'string') {
     e = new ElementWrapper(type);
   } else {
+    // eslint-disable-next-line new-cap
     e = new type();
   }
 
@@ -256,14 +256,15 @@ export function createElement(
     e.setAttribute(p, attributes[p]);
   }
 
-  void (function insertChildren(children) {
-    for (let child of children) {
+  void (function insertChildren(childs) {
+    for (let child of childs) {
       if (typeof child === 'object' && child instanceof Array) {
         insertChildren(child);
       } else {
         if (typeof child === 'string') {
           child = new TextWrapper(child);
         } else if (child === null) {
+          // eslint-disable-next-line no-continue
           continue;
         }
         e.appendChild(child);

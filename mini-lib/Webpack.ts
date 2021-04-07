@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as parser from '@babel/parser';
 import * as babel from '@babel/core';
 import traverse from '@babel/traverse';
+
 const resolve = require('resolve').sync;
 
 let ID = 0;
@@ -15,9 +16,7 @@ interface ModuleInfo {
 }
 
 interface GraphItem extends ModuleInfo {
-  map?: {
-    [depPath: string]: ModuleInfo['id'];
-  };
+  map?: Record<string, ModuleInfo['id']>;
 }
 
 const createModuleInfo = (filePath: string): ModuleInfo => {
@@ -38,7 +37,8 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
     },
   });
 
-  const id = ID++;
+  ID += 1;
+  const id = ID;
   // 编译为 ES5
   const { code } =
     babel.transformFromAstSync(ast, '', {
