@@ -6,20 +6,20 @@ import traverse from '@babel/traverse';
 
 const resolve = require('resolve').sync;
 
-let ID = 0;
+process.env.NODE_ENV = 'development';
 
 interface ModuleInfo {
-  id: number;
+  id: string;
   filePath: string;
   deps: string[];
   code: string | null | undefined;
 }
 
 interface GraphItem extends ModuleInfo {
-  map?: Record<string, ModuleInfo['id']>;
+  map: Record<string, ModuleInfo['id']>;
 }
 
-const createModuleInfo = (filePath: string): ModuleInfo => {
+const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
   // 读取模块源代码
   const content = fs.readFileSync(filePath, 'utf-8');
   // 对源代码进行 AST 产出
@@ -37,13 +37,13 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
     },
   });
 
-  ID += 1;
-  const id = ID;
+  const id = `'${fileId || path.basename(filePath)}'`;
+
   // 编译为 ES5
   const { code } =
     babel.transformFromAstSync(ast, '', {
       ast: true,
-      filename: `index${id}.js`,
+      filename: id,
       presets: [
         [
           '@babel/preset-env',
@@ -58,14 +58,15 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
       plugins: [
         [
           '@babel/plugin-transform-react-jsx',
-          {
-            pragma: 'createElement',
-          },
+          // {
+          //   pragma: 'createElement',
+          // },
         ],
         '@babel/plugin-transform-typescript',
       ],
       babelrc: false,
     }) || {};
+
   return {
     id,
     filePath,
@@ -74,62 +75,98 @@ const createModuleInfo = (filePath: string): ModuleInfo => {
   };
 };
 
-const createDependencyGraph = (entry: string) => {
-  // 获取模块信息
-  const entryInfo = createModuleInfo(entry);
-  // 项目依赖树 可能多入口
-  const graphArr: GraphItem[] = [entryInfo];
-  // 以入口模块为起点，遍历整个项目依赖的模块，并将每个模块信息维护到 graphArr 中
-  for (const graph of graphArr) {
-    graph.map = {};
-    for (const depPath of graph.deps) {
-      const basedir = path.dirname(graph.filePath);
-      const moduleDepPath = resolve(depPath, { basedir, extensions: ['.js', '.ts'] });
-      const moduleInfo = createModuleInfo(moduleDepPath);
-      graphArr.push(moduleInfo);
-      graph.map[depPath] = moduleInfo.id;
+const flatDependencyGraph = (
+  graphItem: GraphItem,
+  dependencyMap: Map<string, string>,
+  graphItems: GraphItem[],
+) => {
+  const { deps, filePath } = graphItem;
+  if (deps && deps.length !== 0) {
+    const basedir = path.dirname(filePath);
+
+    // 循环对应模块的依赖项
+    for (const dep of deps) {
+      const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.ts'] }));
+      const existedDep = dependencyMap.get(depPath);
+      if (existedDep === undefined) {
+        dependencyMap.set(depPath, dep);
+        graphItem.map[dep] = dep;
+
+        const depGraphItem = {
+          ...createModuleInfo(depPath, dep),
+          map: {},
+        };
+
+        flatDependencyGraph(depGraphItem, dependencyMap, graphItems);
+        graphItems.push(depGraphItem);
+      } else {
+        graphItem.map[dep] = existedDep;
+      }
     }
   }
-  return graphArr;
 };
 
-const pack = (graph: GraphItem[]) => {
-  const moduleArgArr = graph.map((module) => {
-    return `${module.id}: {
-      factory: (exports, require) => {
-    ${module.code}
-  }, map: ${JSON.stringify(module.map)}
-  }`;
-  });
-  const iifeBundler = `(function(modules){
-    const require = id => {
-    const {factory, map} = modules[id];
-    const localRequire = requireDeclarationName => require(map[requireDeclarationName]);
-    const module = {exports: {}};
-    factory(module.exports, localRequire);
-    return module.exports;
-  }
-  require(${graph[0].id});
-  })({${moduleArgArr.join()}})
+const analysisDependency = (entry: string) => {
+  // 获取模块信息
+  const entryInfo = createModuleInfo(entry);
+  // TODO 目前仅支持单入口
+  const rootGraphItem = {
+    ...entryInfo,
+    map: {},
+  };
+  const graphItems: GraphItem[] = [rootGraphItem];
+  const dependencyMap = new Map<string, string>();
+  flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
+  return { dependencyMap, graphItems };
+};
+
+const pack = (graphItems: GraphItem[]) => {
+  const modules = graphItems
+    .map((module) => {
+      return `${module.id}: {
+          factory: function (exports, require) { ${module.code}},
+          map: ${JSON.stringify(module.map)}
+        }`;
+    })
+    .join();
+  const iifeBundler = `(() => {
+    const modules = { ${modules} };
+    const cache = {};
+    const require = (moduleId) => {
+      const localRequire = (requireDeclarationName) => require(map[requireDeclarationName]);
+
+      const cacheModule = cache[moduleId];
+      if (cacheModule !== undefined) {
+        return cacheModule.exports;
+      }
+      cache[moduleId] = {
+        exports: {},
+      };
+      const module = cache[moduleId];
+
+      const { factory, map } = modules[moduleId];
+      factory.call(module.exports, module.exports, localRequire);
+
+      return module.exports;
+    };
+
+    require(${graphItems[0].id});
+  })()
   `;
   return iifeBundler;
 };
 
 const main = (entry: string) => {
-  const graph = createDependencyGraph(entry);
-  const deps = graph.map((g) => g.filePath);
-  const data = pack(graph);
-  return { deps, data };
+  const { dependencyMap, graphItems } = analysisDependency(entry);
+  const data = pack(graphItems);
+  return { deps: [...dependencyMap.keys()], data };
 };
 
+// const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
+// const entry = path.join(entryDir, 'app.js');
+// const output = path.join(entryDir, `app.out.js`);
+// const { graphItems } = analysisDependency(entry);
+
+// fs.outputFile(output, pack(graphItems));
+
 export default main;
-
-// const type = 'vue';
-
-// const entry = path.join(__dirname, '../src', `${type}/index.js`);
-// const output = path.join(process.cwd(), `dist/main_${type}.js`);
-
-// const graph = createDependencyGraph(entry);
-// const data = pack(graph);
-
-// fs.outputFile(output, data);

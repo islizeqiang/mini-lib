@@ -27,16 +27,16 @@ class VueRouter {
 
   static installed = false;
 
-  static install(Vue: any) {
+  static install(vue: any) {
     if (VueRouter.installed) return;
     VueRouter.installed = true;
 
-    Vue.mixin({
+    vue.mixin({
       beforeCreate() {
         if (this.$options && this.$options.router) {
           this._routerRoot = this;
           this._router = this.$options.router;
-          Vue.util.defineReactive(this, 'current', this._router.history);
+          vue.util.defineReactive(this, 'current', this._router.history);
         } else {
           this._routerRoot = this.$parent._routerRoot;
         }
@@ -49,7 +49,7 @@ class VueRouter {
       },
     });
 
-    Vue.component('router-view', {
+    vue.component('router-view', {
       render(h: any) {
         const {
           history: { current },

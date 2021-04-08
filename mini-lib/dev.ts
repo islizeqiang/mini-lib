@@ -7,14 +7,18 @@ import { createFsFromVolume, Volume } from 'memfs';
 const outputFileSystem = createFsFromVolume(new Volume());
 
 const entryDir = process.argv[2];
-const entryFile = path.resolve(process.cwd(), `${entryDir}/index.js`);
-const html = path.resolve(process.cwd(), `${entryDir}/index.html`);
+const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
+const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
+const icon = fs.readFileSync(path.resolve(process.cwd(), 'favicon.ico'));
+
 const watchedBundle: string[] = [];
 let firstSuccess = true;
+const port = 7000;
 
 const getHtmlData = async () => {
-  const htmlData = await fs.readFile(html);
-  return htmlData;
+  const htmlText = await fs.readFile(html);
+  const scriptText = Buffer.from('<script src="main.js"></script>');
+  return Buffer.concat([htmlText, scriptText]);
 };
 
 const output = (file: string, data: string | Buffer) => {
@@ -22,8 +26,9 @@ const output = (file: string, data: string | Buffer) => {
   if (firstSuccess) {
     firstSuccess = false;
   } else {
-    console.clear();
+    console.log('');
     console.log(`${new Date().toLocaleString('zh')} Compiled successfully`);
+    console.log(`Server is running on http://127.0.0.1:${port}/`);
   }
 };
 
@@ -54,7 +59,7 @@ const watchBundle = (deps: string[]) => {
 
 const compile = () => {
   const { deps, data } = bundler(entryFile);
-  watchBundle(deps);
+  watchBundle([...deps, entryFile]);
   output('/main.js', data);
 };
 
@@ -78,7 +83,6 @@ void (() => {
   updateEntryHtml();
   compile();
   watchHtml();
-  const port = 7000;
 
   const server = http.createServer((req, res) => {
     if (req.url === '/') {
@@ -87,10 +91,11 @@ void (() => {
     } else if (req.url === '/main.js') {
       res.setHeader('Content-Type', 'text/javascript');
       res.end(outputFileSystem.readFileSync('/main.js'));
+    } else if (req.url === '/favicon.ico') {
+      res.setHeader('Content-Type', 'image/x-icon');
+      res.end(icon);
     }
   });
 
-  server.listen(port, '127.0.0.1', () => {
-    console.log(`Server is running on http://127.0.0.1:${port}/`);
-  });
+  server.listen(port, '127.0.0.1');
 })();

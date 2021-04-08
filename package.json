@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "parcel src/vue/index.html",
-    "dev": "ts-node mini-lib/dev.ts example/vue-router",
+    "dev": "ts-node mini-lib/dev.ts react-router",
     "postinstall": "husky install"
   },
   "dependencies": {

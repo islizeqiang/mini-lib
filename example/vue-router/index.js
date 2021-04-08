@@ -1,5 +1,5 @@
-import '../../lib/Vue';
-import VueRouter from '../../mini-lib/Vuerouter';
+import '../../lib/vue';
+import VueRouter from '../../mini-lib/VueRouter';
 
 const { Vue } = window;
 

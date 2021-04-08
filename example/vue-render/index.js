@@ -1,6 +1,4 @@
-import '../../lib/Vue';
-
-const { Vue } = window;
+import Vue from '../../mini-lib/Vue';
 
 const app = new Vue({
   el: '#app',

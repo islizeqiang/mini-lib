@@ -1,4 +1,4 @@
-import * as React from '../../lib/React';
+import * as React from '../../mini-lib/React';
 
 const { createElement, Component, render } = React;
 
