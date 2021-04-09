@@ -3,8 +3,8 @@ const RENDER_TO_DOM = Symbol('render to dom');
 
 type Dict<T> = Record<string | symbol, T>;
 
-interface ComponentClass<P = {}> {
-  new (props?: P, context?: any): Component;
+interface ComponentClass {
+  new (props?: Dict<unknown>, context?: any): Component;
 }
 
 interface Attributes extends Dict<unknown> {

@@ -1,4 +1,4 @@
-import { pathToRegexp } from './path-to-regexp';
+import { pathToRegexp } from '../../lib/path-to-regexp';
 
 const cache = {};
 const cacheLimit = 10000;
@@ -16,7 +16,7 @@ function compilePath(path, options) {
 
   if (cacheCount < cacheLimit) {
     pathCache[path] = result;
-    cacheCount++;
+    cacheCount += 1;
   }
 
   return result;
@@ -34,6 +34,7 @@ function matchPath(pathname, options = {}) {
 
   const paths = [].concat(path);
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   return paths.reduce((matched, path) => {
     if (!path && path !== '') return null;
     if (matched) return matched;

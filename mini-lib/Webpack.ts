@@ -86,7 +86,7 @@ const flatDependencyGraph = (
 
     // 循环对应模块的依赖项
     for (const dep of deps) {
-      const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.ts'] }));
+      const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.jsx', '.ts', '.tsx'] }));
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {
         dependencyMap.set(depPath, dep);

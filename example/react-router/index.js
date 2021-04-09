@@ -1,10 +1,8 @@
 import '../../lib/react';
 import '../../lib/react-dom';
 
-import Router from './myReactRouter/react-router-dom/BrowserRouter';
-import Route from './myReactRouter/react-router/Route';
-import Switch from './myReactRouter/react-router/Switch';
-import Link from './myReactRouter/react-router-dom/Link';
+import { BrowserRouter as Router, Link } from '../../mini-lib/ReactRouter/react-router-dom';
+import { Switch, Route } from '../../mini-lib/ReactRouter/react-router';
 
 const Admin = () => {
   return (
