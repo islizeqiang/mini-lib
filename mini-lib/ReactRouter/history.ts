@@ -44,7 +44,7 @@ const createBrowserHistory = () => {
     },
     // 默认值
     location: {
-      pathname: '/',
+      pathname: window.location.pathname,
     },
   };
 };

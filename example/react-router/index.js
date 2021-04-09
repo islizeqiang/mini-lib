@@ -1,8 +1,12 @@
 import '../../lib/react';
 import '../../lib/react-dom';
 
-import { BrowserRouter as Router, Link } from '../../mini-lib/ReactRouter/react-router-dom';
-import { Switch, Route } from '../../mini-lib/ReactRouter/react-router';
+import {
+  BrowserRouter as Router,
+  Link,
+  Switch,
+  Route,
+} from '../../mini-lib/ReactRouter/react-router-dom';
 
 const Admin = () => {
   return (
@@ -17,11 +21,7 @@ const Home = () => {
   return (
     <>
       <h1>首页</h1>
-      <ul>
-        <li>
-          <Link to="/admin">管理员</Link>
-        </li>
-      </ul>
+      <Link to="/admin">管理员</Link>
     </>
   );
 };

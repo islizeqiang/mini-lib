@@ -2,10 +2,11 @@ import bundler from './Webpack';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 import * as http from 'http';
+import { performance } from 'perf_hooks';
+import chalk from 'chalk';
 import { createFsFromVolume, Volume } from 'memfs';
 
 const outputFileSystem = createFsFromVolume(new Volume());
-
 const entryDir = process.argv[2];
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
 const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
@@ -21,20 +22,20 @@ const getHtmlData = async () => {
   return Buffer.concat([htmlText, scriptText]);
 };
 
-const output = (file: string, data: string | Buffer) => {
+const output = (file: string, data: string | Buffer, startTime: number) => {
   outputFileSystem.writeFileSync(file, data);
   if (firstSuccess) {
     firstSuccess = false;
   } else {
     console.log('');
-    console.log(`${new Date().toLocaleString('zh')} Compiled successfully`);
-    console.log(`Server is running on http://127.0.0.1:${port}/`);
+    console.log(chalk.blue(new Date().toLocaleString('zh')));
+    console.log(
+      `Compiled successfully in ${chalk.cyan.bold(
+        `${((performance.now() - startTime) / 1000).toFixed(2)}s`,
+      )}`,
+    );
+    console.log(`Server is running on ${chalk.green.bold(`http://127.0.0.1:${port}/`)}`);
   }
-};
-
-const updateEntryHtml = async () => {
-  const data = await getHtmlData();
-  output('/index.html', data);
 };
 
 const watchBundle = (deps: string[]) => {
@@ -50,31 +51,30 @@ const watchBundle = (deps: string[]) => {
     for (const bundle of unwatchBundle) {
       fs.watch(bundle, (event: 'rename' | 'change') => {
         if (event === 'change') {
-          update('bundle');
+          compile();
         }
       });
     }
   }
 };
 
-const compile = () => {
+function compile() {
+  const startTime = performance.now();
   const { deps, data } = bundler(entryFile);
   watchBundle([...deps, entryFile]);
-  output('/main.js', data);
-};
-
-function update(type: string) {
-  if (type === 'html') {
-    updateEntryHtml();
-  } else if (type === 'bundle') {
-    compile();
-  }
+  output('/main.js', data, startTime);
 }
+
+const updateEntryHtml = async () => {
+  const startTime = performance.now();
+  const data = await getHtmlData();
+  output('/index.html', data, startTime);
+};
 
 const watchHtml = () => {
   fs.watch(html, (event: 'rename' | 'change') => {
     if (event === 'change') {
-      update('html');
+      updateEntryHtml();
     }
   });
 };
@@ -85,15 +85,18 @@ void (() => {
   watchHtml();
 
   const server = http.createServer((req, res) => {
-    if (req.url === '/') {
-      res.setHeader('Content-Type', 'text/html');
-      res.end(outputFileSystem.readFileSync('/index.html'));
-    } else if (req.url === '/main.js') {
-      res.setHeader('Content-Type', 'text/javascript');
-      res.end(outputFileSystem.readFileSync('/main.js'));
-    } else if (req.url === '/favicon.ico') {
-      res.setHeader('Content-Type', 'image/x-icon');
-      res.end(icon);
+    switch (req.url) {
+      case '/main.js':
+        res.setHeader('Content-Type', 'text/javascript');
+        res.end(outputFileSystem.readFileSync('/main.js'));
+        break;
+      case '/favicon.ico':
+        res.setHeader('Content-Type', 'image/x-icon');
+        res.end(icon);
+        break;
+      default:
+        res.setHeader('Content-Type', 'text/html');
+        res.end(outputFileSystem.readFileSync('/index.html'));
     }
   });
 
