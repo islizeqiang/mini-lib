@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "start": "parcel src/vue/index.html",
+    "start": "npm run dev",
     "dev": "ts-node mini-lib/dev.ts react-router",
     "postinstall": "husky install"
   },
@@ -25,7 +25,6 @@
     "code-fabric": "^1.4.0",
     "husky": "^6.0.0",
     "lint-staged": "^10.5.4",
-    "parcel-bundler": "^1.12.5",
     "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
