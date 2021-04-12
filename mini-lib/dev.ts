@@ -58,9 +58,9 @@ const watchBundle = (deps: string[]) => {
   }
 };
 
-function compile() {
+async function compile() {
   const startTime = performance.now();
-  const { deps, data } = bundler(entryFile);
+  const { deps, data } = await bundler(entryFile);
   watchBundle([...deps, entryFile]);
   output('/main.js', data, startTime);
 }
@@ -79,10 +79,10 @@ const watchHtml = () => {
   });
 };
 
-void (() => {
+void (async () => {
   updateEntryHtml();
-  compile();
   watchHtml();
+  await compile();
 
   const server = http.createServer((req, res) => {
     switch (req.url) {

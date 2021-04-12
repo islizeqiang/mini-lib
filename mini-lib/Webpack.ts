@@ -19,6 +19,8 @@ interface GraphItem extends ModuleInfo {
   map: Record<string, ModuleInfo['id']>;
 }
 
+type DependencyMap = Map<string, string>;
+
 const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
   // 读取模块源代码
   const content = fs.readFileSync(filePath, 'utf-8');
@@ -43,6 +45,7 @@ const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
   const { code } =
     babel.transformFromAstSync(ast, '', {
       ast: true,
+      comments: false,
       filename: id,
       presets: [
         [
@@ -77,7 +80,7 @@ const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
 
 const flatDependencyGraph = (
   graphItem: GraphItem,
-  dependencyMap: Map<string, string>,
+  dependencyMap: DependencyMap,
   graphItems: GraphItem[],
 ) => {
   const { deps, filePath } = graphItem;
@@ -106,19 +109,20 @@ const flatDependencyGraph = (
   }
 };
 
-const analysisDependency = (entry: string) => {
-  // 获取模块信息
-  const entryInfo = createModuleInfo(entry);
-  // TODO 目前仅支持单入口
-  const rootGraphItem = {
-    ...entryInfo,
-    map: {},
-  };
-  const graphItems: GraphItem[] = [rootGraphItem];
-  const dependencyMap = new Map<string, string>();
-  flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
-  return { dependencyMap, graphItems };
-};
+const analysisDependency = (entry: string) =>
+  new Promise<{ dependencyMap: DependencyMap; graphItems: GraphItem[] }>((res) => {
+    // 获取模块信息
+    const entryInfo = createModuleInfo(entry);
+    // TODO 目前仅支持单入口
+    const rootGraphItem = {
+      ...entryInfo,
+      map: {},
+    };
+    const graphItems: GraphItem[] = [rootGraphItem];
+    const dependencyMap: DependencyMap = new Map();
+    flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
+    res({ dependencyMap, graphItems });
+  });
 
 const pack = (graphItems: GraphItem[]) => {
   const modules = graphItems
@@ -156,8 +160,8 @@ const pack = (graphItems: GraphItem[]) => {
   return iifeBundler;
 };
 
-const main = (entry: string) => {
-  const { dependencyMap, graphItems } = analysisDependency(entry);
+const main = async (entry: string) => {
+  const { dependencyMap, graphItems } = await analysisDependency(entry);
   const data = pack(graphItems);
   return { deps: [...dependencyMap.keys()], data };
 };

@@ -1,13 +1,14 @@
 {
   "compilerOptions": {
-    "jsx": "react",
     "target": "ESNext",
     "module": "CommonJS",
-    "declaration": true,
-    "downlevelIteration": true,
     "allowJs": true,
     "strict": true,
     "lib": ["esnext", "dom", "dom.iterable"],
+    "jsx": "react",
+    "noImplicitAny": true,
+    "declaration": true,
+    "downlevelIteration": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,

@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "npm run dev",
-    "dev": "ts-node mini-lib/dev.ts react-router",
+    "dev": "ts-node mini-lib/dev.ts redux-example",
     "postinstall": "husky install"
   },
   "dependencies": {
