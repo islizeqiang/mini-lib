@@ -10,7 +10,6 @@ const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
 const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
-const icon = fs.readFileSync(path.resolve(process.cwd(), 'favicon.ico'));
 
 const watchedBundle: string[] = [];
 let firstSuccess = true;
@@ -88,15 +87,16 @@ void (async () => {
     switch (req.url) {
       case '/main.js':
         res.setHeader('Content-Type', 'text/javascript');
-        res.end(outputFileSystem.readFileSync('/main.js'));
+        outputFileSystem.createReadStream('/main.js').pipe(res);
         break;
       case '/favicon.ico':
         res.setHeader('Content-Type', 'image/x-icon');
-        res.end(icon);
+        fs.createReadStream(path.resolve(process.cwd(), 'favicon.ico')).pipe(res);
         break;
       default:
         res.setHeader('Content-Type', 'text/html');
-        res.end(outputFileSystem.readFileSync('/index.html'));
+        outputFileSystem.createReadStream('/index.html').pipe(res);
+        break;
     }
   });
 

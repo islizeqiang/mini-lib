@@ -6,24 +6,65 @@ import traverse from '@babel/traverse';
 
 const resolve = require('resolve').sync;
 
-process.env.NODE_ENV = 'development';
-
 interface ModuleInfo {
   id: string;
   filePath: string;
   deps: string[];
-  code: string | null | undefined;
+  code: string;
 }
-
 interface GraphItem extends ModuleInfo {
   map: Record<string, ModuleInfo['id']>;
 }
-
 type DependencyMap = Map<string, string>;
 
-const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
+process.env.NODE_ENV = 'development';
+
+const generateCode = (ast: babel.types.File, filename: string): Promise<string> =>
+  new Promise((res, rej) => {
+    babel.transformFromAst(
+      ast,
+      undefined,
+      {
+        ast: true,
+        comments: false,
+        filename,
+        presets: [
+          [
+            '@babel/preset-env',
+            {
+              targets: {
+                esmodules: true,
+              },
+            },
+          ],
+          '@babel/preset-typescript',
+        ],
+        plugins: [
+          [
+            '@babel/plugin-transform-react-jsx',
+            // {
+            //   pragma: 'createElement',
+            // },
+          ],
+          '@babel/plugin-transform-typescript',
+        ],
+        babelrc: false,
+      },
+      (error, result) => {
+        if (error) {
+          rej(error);
+        }
+        if (result) {
+          res(result.code || '');
+        }
+        res('');
+      },
+    );
+  });
+
+const createModuleInfo = async (filePath: string, fileId?: string): Promise<ModuleInfo> => {
   // 读取模块源代码
-  const content = fs.readFileSync(filePath, 'utf-8');
+  const content = await fs.readFile(filePath, 'utf-8');
   // 对源代码进行 AST 产出
   const ast = parser.parse(content, {
     sourceType: 'unambiguous',
@@ -42,33 +83,7 @@ const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
   const id = `'${fileId || path.basename(filePath)}'`;
 
   // 编译为 ES5
-  const { code } =
-    babel.transformFromAstSync(ast, '', {
-      ast: true,
-      comments: false,
-      filename: id,
-      presets: [
-        [
-          '@babel/preset-env',
-          {
-            targets: {
-              esmodules: true,
-            },
-          },
-        ],
-        '@babel/preset-typescript',
-      ],
-      plugins: [
-        [
-          '@babel/plugin-transform-react-jsx',
-          // {
-          //   pragma: 'createElement',
-          // },
-        ],
-        '@babel/plugin-transform-typescript',
-      ],
-      babelrc: false,
-    }) || {};
+  const code = await generateCode(ast, id);
 
   return {
     id,
@@ -78,7 +93,7 @@ const createModuleInfo = (filePath: string, fileId?: string): ModuleInfo => {
   };
 };
 
-const flatDependencyGraph = (
+const flatDependencyGraph = async (
   graphItem: GraphItem,
   dependencyMap: DependencyMap,
   graphItems: GraphItem[],
@@ -88,41 +103,43 @@ const flatDependencyGraph = (
     const basedir = path.dirname(filePath);
 
     // 循环对应模块的依赖项
-    for (const dep of deps) {
+    const getTask = async (dep: string) => {
       const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.jsx', '.ts', '.tsx'] }));
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {
         dependencyMap.set(depPath, dep);
         graphItem.map[dep] = dep;
+        const moduleInfo = await createModuleInfo(depPath, dep);
 
         const depGraphItem = {
-          ...createModuleInfo(depPath, dep),
+          ...moduleInfo,
           map: {},
         };
 
-        flatDependencyGraph(depGraphItem, dependencyMap, graphItems);
+        await flatDependencyGraph(depGraphItem, dependencyMap, graphItems);
         graphItems.push(depGraphItem);
       } else {
         graphItem.map[dep] = existedDep;
       }
-    }
+    };
+
+    await Promise.all(deps.map((dep) => getTask(dep)));
   }
 };
 
-const analysisDependency = (entry: string) =>
-  new Promise<{ dependencyMap: DependencyMap; graphItems: GraphItem[] }>((res) => {
-    // 获取模块信息
-    const entryInfo = createModuleInfo(entry);
-    // TODO 目前仅支持单入口
-    const rootGraphItem = {
-      ...entryInfo,
-      map: {},
-    };
-    const graphItems: GraphItem[] = [rootGraphItem];
-    const dependencyMap: DependencyMap = new Map();
-    flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
-    res({ dependencyMap, graphItems });
-  });
+const analysisDependency = async (entry: string) => {
+  // 获取模块信息
+  const entryInfo = await createModuleInfo(entry);
+  // TODO 目前仅支持单入口
+  const rootGraphItem = {
+    ...entryInfo,
+    map: {},
+  };
+  const graphItems: GraphItem[] = [rootGraphItem];
+  const dependencyMap: DependencyMap = new Map();
+  await flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
+  return { dependencyMap, graphItems };
+};
 
 const pack = (graphItems: GraphItem[]) => {
   const modules = graphItems
