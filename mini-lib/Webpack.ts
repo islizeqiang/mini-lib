@@ -33,7 +33,7 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
             '@babel/preset-env',
             {
               targets: {
-                esmodules: true,
+                node: '15',
               },
             },
           ],
@@ -99,16 +99,19 @@ const flatDependencyGraph = async (
   graphItems: GraphItem[],
 ) => {
   const { deps, filePath } = graphItem;
+
   if (deps && deps.length !== 0) {
     const basedir = path.dirname(filePath);
 
     // 循环对应模块的依赖项
     const getTask = async (dep: string) => {
       const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.jsx', '.ts', '.tsx'] }));
+
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {
         dependencyMap.set(depPath, dep);
         graphItem.map[dep] = dep;
+
         const moduleInfo = await createModuleInfo(depPath, dep);
 
         const depGraphItem = {
@@ -137,7 +140,9 @@ const analysisDependency = async (entry: string) => {
   };
   const graphItems: GraphItem[] = [rootGraphItem];
   const dependencyMap: DependencyMap = new Map();
+
   await flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
+
   return { dependencyMap, graphItems };
 };
 
@@ -179,6 +184,7 @@ const pack = (graphItems: GraphItem[]) => {
 
 const main = async (entry: string) => {
   const { dependencyMap, graphItems } = await analysisDependency(entry);
+
   const data = pack(graphItems);
   return { deps: [...dependencyMap.keys()], data };
 };
