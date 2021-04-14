@@ -1,4 +1,4 @@
-import { SyncHook, SyncBailHook } from '../../mini-lib/Tabable';
+import { SyncHook, SyncBailHook } from '../../mini-lib/Tapable';
 
 const testSyncHook = () => {
   // 实例化一个加速的hook
