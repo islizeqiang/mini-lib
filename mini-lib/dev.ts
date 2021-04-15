@@ -4,24 +4,25 @@ import { createFsFromVolume, Volume } from 'memfs';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as http from 'http';
+import { debounce, isWebSocket } from './utils';
 import scriptBundler from './Webpack';
+import open from '../lib/open';
+
+const WebSocket = require('faye-websocket');
 
 const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
 const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
-const scriptText = Buffer.from('<script src="main.js"></script>');
-const port = 7000;
+const scriptText = Buffer.from('<script type="text/javascript" src="main.js"></script>');
+const INJECTED_CODE = fs.readFileSync(path.join(__dirname, 'injected.html'));
+
+const HOST = '127.0.0.1';
+const PORT = 7000;
 
 const watchedFiles: string[] = [];
-
-const debounce = <T extends Function, V extends unknown[]>(func: T, ms: number) => {
-  let timeoutId: NodeJS.Timeout;
-  return function (this: T, ...args: V) {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func.apply(this, args), ms);
-  };
-};
+let firstSuccess = false;
+let ws: WebSocket;
 
 const output = (file: string, data: string | Buffer) =>
   new Promise<void>((res, rej) => {
@@ -36,7 +37,7 @@ const output = (file: string, data: string | Buffer) =>
 
 const compileHtml = async () => {
   const htmlText = await fs.readFile(html);
-  const data = Buffer.concat([htmlText, scriptText]);
+  const data = Buffer.concat([htmlText, scriptText, INJECTED_CODE]);
   watchFile([html]);
   await output('/index.html', data);
 };
@@ -63,6 +64,11 @@ const compile = async (fileExtension?: string) => {
       `${((performance.now() - startTime) / 1000).toFixed(2)}s`,
     )}`,
   );
+  if (!firstSuccess) {
+    firstSuccess = true;
+  } else {
+    ws.send('reload');
+  }
 };
 
 const debounceCompile = debounce(compile, 100);
@@ -87,7 +93,7 @@ function watchFile(files: string[]) {
   }
 }
 
-void (async () => {
+const main = async () => {
   await compile();
 
   const server = http.createServer((req, res) => {
@@ -107,6 +113,17 @@ void (async () => {
     }
   });
 
-  server.listen(port, '127.0.0.1');
-  console.log(`Server is running on ${chalk.green.bold(`http://127.0.0.1:${port}/`)}`);
-})();
+  server.listen(PORT, HOST);
+
+  server.addListener('upgrade', (request, socket, head) => {
+    if (isWebSocket(request)) {
+      ws = new WebSocket(request, socket, head);
+    }
+  });
+
+  await open(`${HOST}:${PORT}`);
+
+  console.log(`Server is running on ${chalk.green.bold(`http://${HOST}:${PORT}`)}`);
+};
+
+process.nextTick(main);
