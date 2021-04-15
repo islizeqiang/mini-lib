@@ -42,7 +42,7 @@
           value: true,
         });
         exports.default = area;
-        var PI = 3.141;
+        const PI = 3.141;
 
         function area(radius) {
           return PI * radius * radius;

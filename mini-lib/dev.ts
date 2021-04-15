@@ -1,86 +1,93 @@
-import bundler from './Webpack';
-import * as path from 'path';
-import * as fs from 'fs-extra';
-import * as http from 'http';
-import { performance } from 'perf_hooks';
 import chalk from 'chalk';
+import { performance } from 'perf_hooks';
 import { createFsFromVolume, Volume } from 'memfs';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as http from 'http';
+import scriptBundler from './Webpack';
 
 const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
 const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
-
-const watchedBundle: string[] = [];
-let firstSuccess = true;
+const scriptText = Buffer.from('<script src="main.js"></script>');
 const port = 7000;
 
-const getHtmlData = async () => {
+const watchedFiles: string[] = [];
+
+const debounce = <T extends Function, V extends unknown[]>(func: T, ms: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return function (this: T, ...args: V) {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), ms);
+  };
+};
+
+const output = (file: string, data: string | Buffer) =>
+  new Promise<void>((res, rej) => {
+    outputFileSystem.writeFile(file, data, (error) => {
+      if (error) {
+        rej(error);
+      } else {
+        res();
+      }
+    });
+  });
+
+const compileHtml = async () => {
   const htmlText = await fs.readFile(html);
-  const scriptText = Buffer.from('<script src="main.js"></script>');
-  return Buffer.concat([htmlText, scriptText]);
+  const data = Buffer.concat([htmlText, scriptText]);
+  watchFile([html]);
+  await output('/index.html', data);
 };
 
-const output = (file: string, data: string | Buffer, startTime: number) => {
-  outputFileSystem.writeFileSync(file, data);
-  if (firstSuccess) {
-    firstSuccess = false;
+const compileScript = async () => {
+  const { deps, data } = await scriptBundler(entryFile);
+  watchFile([...deps, entryFile]);
+  await output('/main.js', data);
+};
+
+const compile = async (fileExtension?: string) => {
+  const startTime = performance.now();
+  if (fileExtension === undefined) {
+    await Promise.all([compileHtml(), compileScript()]);
+  } else if (fileExtension === '.html') {
+    await compileHtml();
   } else {
-    console.log('');
-    console.log(chalk.blue(new Date().toLocaleString('zh')));
-    console.log(
-      `Compiled successfully in ${chalk.cyan.bold(
-        `${((performance.now() - startTime) / 1000).toFixed(2)}s`,
-      )}`,
-    );
-    console.log(`Server is running on ${chalk.green.bold(`http://127.0.0.1:${port}/`)}`);
+    await compileScript();
   }
+  console.log('');
+  console.log(chalk.blue(new Date().toLocaleString('zh')));
+  console.log(
+    `Compile successfully in ${chalk.cyan.bold(
+      `${((performance.now() - startTime) / 1000).toFixed(2)}s`,
+    )}`,
+  );
 };
 
-const watchBundle = (deps: string[]) => {
-  const unwatchBundle = deps.reduce((acc: string[], cur) => {
-    if (!watchedBundle.includes(cur)) {
+const debounceCompile = debounce(compile, 100);
+
+function watchFile(files: string[]) {
+  const unwatchFiles = files.reduce((acc: string[], cur) => {
+    if (!watchedFiles.includes(cur)) {
       acc.push(cur);
     }
     return acc;
   }, []);
 
-  if (unwatchBundle.length !== 0) {
-    watchedBundle.push(...deps);
-    for (const bundle of unwatchBundle) {
-      fs.watch(bundle, (event: 'rename' | 'change') => {
+  if (unwatchFiles.length !== 0) {
+    watchedFiles.push(...unwatchFiles);
+    for (const bundle of unwatchFiles) {
+      fs.watch(bundle, (event, filename) => {
         if (event === 'change') {
-          compile();
+          debounceCompile.call(compile, path.extname(filename));
         }
       });
     }
   }
-};
-
-async function compile() {
-  const startTime = performance.now();
-  const { deps, data } = await bundler(entryFile);
-  watchBundle([...deps, entryFile]);
-  output('/main.js', data, startTime);
 }
 
-const updateEntryHtml = async () => {
-  const startTime = performance.now();
-  const data = await getHtmlData();
-  output('/index.html', data, startTime);
-};
-
-const watchHtml = () => {
-  fs.watch(html, (event: 'rename' | 'change') => {
-    if (event === 'change') {
-      updateEntryHtml();
-    }
-  });
-};
-
 void (async () => {
-  updateEntryHtml();
-  watchHtml();
   await compile();
 
   const server = http.createServer((req, res) => {
@@ -101,4 +108,5 @@ void (async () => {
   });
 
   server.listen(port, '127.0.0.1');
+  console.log(`Server is running on ${chalk.green.bold(`http://127.0.0.1:${port}/`)}`);
 })();

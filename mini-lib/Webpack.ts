@@ -3,8 +3,7 @@ import * as path from 'path';
 import * as parser from '@babel/parser';
 import * as babel from '@babel/core';
 import traverse from '@babel/traverse';
-
-const resolve = require('resolve').sync;
+import resolve from 'resolve';
 
 interface ModuleInfo {
   id: string;
@@ -16,6 +15,9 @@ interface GraphItem extends ModuleInfo {
   map: Record<string, ModuleInfo['id']>;
 }
 type DependencyMap = Map<string, string>;
+
+const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
+const cwd = process.cwd();
 
 process.env.NODE_ENV = 'development';
 
@@ -93,6 +95,17 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
   };
 };
 
+const resolveFile = (name: string, basedir: string): Promise<string | undefined> =>
+  new Promise((res, rej) => {
+    resolve(name, { basedir, extensions: resolveExtensions }, (error, result) => {
+      if (error) {
+        rej(rej);
+      } else {
+        res(result);
+      }
+    });
+  });
+
 const flatDependencyGraph = async (
   graphItem: GraphItem,
   dependencyMap: DependencyMap,
@@ -105,14 +118,17 @@ const flatDependencyGraph = async (
 
     // 循环对应模块的依赖项
     const getTask = async (dep: string) => {
-      const depPath = String(resolve(dep, { basedir, extensions: ['.js', '.jsx', '.ts', '.tsx'] }));
+      const depPath = await resolveFile(dep, basedir);
+      if (!depPath) throw new Error('No file');
 
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {
-        dependencyMap.set(depPath, dep);
-        graphItem.map[dep] = dep;
+        const fileId = depPath.replace(cwd, '.');
 
-        const moduleInfo = await createModuleInfo(depPath, dep);
+        dependencyMap.set(depPath, fileId);
+        graphItem.map[dep] = fileId;
+
+        const moduleInfo = await createModuleInfo(depPath, fileId);
 
         const depGraphItem = {
           ...moduleInfo,
@@ -150,7 +166,7 @@ const pack = (graphItems: GraphItem[]) => {
   const modules = graphItems
     .map((module) => {
       return `${module.id}: {
-          factory: function (exports, require) { ${module.code}},
+          factory: function (exports, require) { ${module.code} },
           map: ${JSON.stringify(module.map)}
         }`;
     })
@@ -189,11 +205,13 @@ const main = async (entry: string) => {
   return { deps: [...dependencyMap.keys()], data };
 };
 
-// const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
-// const entry = path.join(entryDir, 'app.js');
-// const output = path.join(entryDir, `app.out.js`);
-// const { graphItems } = analysisDependency(entry);
+// void (async function test() {
+//   const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
+//   const entry = path.join(entryDir, 'app.js');
+//   const output = path.join(entryDir, `app.out.js`);
 
-// fs.outputFile(output, pack(graphItems));
+//   const { graphItems } = await analysisDependency(entry);
+//   fs.outputFile(output, pack(graphItems));
+// })();
 
 export default main;
