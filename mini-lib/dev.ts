@@ -1,21 +1,22 @@
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 import { createFsFromVolume, Volume } from 'memfs';
-import * as fs from 'fs-extra';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as http from 'http';
-import { debounce, isWebSocket } from './utils';
+import { debounce, isWebSocket, concatStreams } from './utils';
 import scriptBundler from './Webpack';
-import open from '../lib/open';
 
+const open = require('open');
 const WebSocket = require('faye-websocket');
 
 const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
+
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
-const html = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
-const scriptText = Buffer.from('<script type="text/javascript" src="main.js"></script>');
-const INJECTED_CODE = fs.readFileSync(path.join(__dirname, 'injected.html'));
+const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
+const injectFile = path.resolve(__dirname, 'injected.html');
+const iconFile = path.resolve(__dirname, 'favicon.ico');
 
 const HOST = '127.0.0.1';
 const PORT = 7000;
@@ -35,12 +36,17 @@ const output = (file: string, data: string | Buffer) =>
     });
   });
 
-const compileHtml = async () => {
-  const htmlText = await fs.readFile(html);
-  const data = Buffer.concat([htmlText, scriptText, INJECTED_CODE]);
-  watchFile([html]);
-  await output('/index.html', data);
-};
+const compileHtml = () =>
+  new Promise((res, rej) => {
+    fs.readFile(htmlFile, (error, data) => {
+      if (error) {
+        rej(error);
+      } else {
+        watchFile([htmlFile]);
+        output('/index.html', data).then(res);
+      }
+    });
+  });
 
 const compileScript = async () => {
   const { deps, data } = await scriptBundler(entryFile);
@@ -94,7 +100,11 @@ function watchFile(files: string[]) {
 }
 
 const main = async () => {
-  await compile();
+  // console.clear();
+  process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
+
+  const targetURL = `http://${HOST}:${PORT}`;
+  console.log(`Starting server on ${chalk.green.bold(targetURL)}`);
 
   const server = http.createServer((req, res) => {
     switch (req.url) {
@@ -104,11 +114,14 @@ const main = async () => {
         break;
       case '/favicon.ico':
         res.setHeader('Content-Type', 'image/x-icon');
-        fs.createReadStream(path.resolve(process.cwd(), 'favicon.ico')).pipe(res);
+        fs.createReadStream(iconFile).pipe(res);
         break;
       default:
         res.setHeader('Content-Type', 'text/html');
-        outputFileSystem.createReadStream('/index.html').pipe(res);
+        concatStreams([
+          outputFileSystem.createReadStream('/index.html'),
+          fs.createReadStream(injectFile),
+        ]).pipe(res);
         break;
     }
   });
@@ -121,9 +134,8 @@ const main = async () => {
     }
   });
 
-  await open(`${HOST}:${PORT}`);
-
-  console.log(`Server is running on ${chalk.green.bold(`http://${HOST}:${PORT}`)}`);
+  await compile();
+  await open(targetURL);
 };
 
 process.nextTick(main);
