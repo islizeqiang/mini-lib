@@ -6,6 +6,7 @@ import * as path from 'path';
 import * as http from 'http';
 import { debounce, isWebSocket, concatStreams } from './utils';
 import scriptBundler from './Webpack';
+import { nodeTarget } from './builtins';
 
 const open = require('open');
 const WebSocket = require('faye-websocket');
@@ -14,6 +15,7 @@ const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
 
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
+const entryServerFile = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
 const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
 const injectFile = path.resolve(__dirname, 'injected.html');
 const iconFile = path.resolve(__dirname, 'favicon.ico');

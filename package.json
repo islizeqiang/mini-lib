@@ -5,7 +5,7 @@
   "description": "mini lib",
   "scripts": {
     "start": "npm run watch:dev-script & npm run dev",
-    "dev": "nodemon --watch $npm_package_config_develop_scripts $npm_package_config_develop_scripts/dev.js react-router",
+    "dev": "nodemon --watch $npm_package_config_develop_scripts $npm_package_config_develop_scripts/dev.js $npm_package_config_entry",
     "watch:dev-script": "npm run compile:dev-script -- --watch",
     "compile:dev-script": "tsc mini-lib/dev --outDir $npm_package_config_develop_scripts --module CommonJS --target ESNext --downlevelIteration --esModuleInterop",
     "postinstall": "husky install"
@@ -32,7 +32,6 @@
     "husky": "^6.0.0",
     "lint-staged": "^10.5.4",
     "nodemon": "^2.0.7",
-    "ts-node": "^9.1.1",
     "typescript": "^4.2.3"
   },
   "keywords": [],
@@ -45,6 +44,7 @@
     ]
   },
   "config": {
-    "develop_scripts": "scripts/develop"
+    "develop_scripts": "scripts/develop",
+    "entry": "koa-example"
   }
 }

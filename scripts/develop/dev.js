@@ -55,6 +55,7 @@ const WebSocket = require('faye-websocket');
 const outputFileSystem = memfs_1.createFsFromVolume(new memfs_1.Volume());
 const entryDir = process.argv[2];
 const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
+const entryServerFile = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
 const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
 const injectFile = path.resolve(__dirname, 'injected.html');
 const iconFile = path.resolve(__dirname, 'favicon.ico');
@@ -87,6 +88,7 @@ const compileHtml = () =>
 const compileScript = async () => {
   const { deps, data } = await Webpack_1.default(entryFile);
   watchFile([...deps, entryFile]);
+  fs.writeFileSync(path.join(__dirname, '../test', 'main.js'), data);
   await output('/main.js', data);
 };
 const compile = async (fileExtension) => {

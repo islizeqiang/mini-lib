@@ -174,9 +174,11 @@ const pack = (graphItems: GraphItem[]) => {
   const iifeBundler = `(() => {
     const modules = { ${modules} };
     const cache = {};
-    const require = (moduleId) => {
-      const localRequire = (requireDeclarationName) => require(map[requireDeclarationName]);
-
+    const _require = (moduleId) => {
+      const __require = (requireDeclarationName) => {
+        const localModule = map[requireDeclarationName];
+        return localModule ? _require(localModule) : require(requireDeclarationName);
+      };
       const cacheModule = cache[moduleId];
       if (cacheModule !== undefined) {
         return cacheModule.exports;
@@ -185,14 +187,11 @@ const pack = (graphItems: GraphItem[]) => {
         exports: {},
       };
       const module = cache[moduleId];
-
       const { factory, map } = modules[moduleId];
-      factory.call(module.exports, module.exports, localRequire);
-
+      factory.call(module.exports, module.exports, __require);
       return module.exports;
     };
-
-    require(${graphItems[0].id});
+    _require(${graphItems[0].id});
   })()
   `;
   return iifeBundler;
