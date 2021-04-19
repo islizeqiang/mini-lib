@@ -47,23 +47,26 @@ const perf_hooks_1 = require('perf_hooks');
 const memfs_1 = require('memfs');
 const fs = __importStar(require('fs'));
 const path = __importStar(require('path'));
-const http = __importStar(require('http'));
+const http_1 = require('http');
+const child_process_1 = require('child_process');
 const utils_1 = require('./utils');
 const Webpack_1 = __importDefault(require('./Webpack'));
 const open = require('open');
 const WebSocket = require('faye-websocket');
 const outputFileSystem = memfs_1.createFsFromVolume(new memfs_1.Volume());
 const entryDir = process.argv[2];
-const entryFile = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
-const entryServerFile = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
+const clientEntry = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
+const serverEntry = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
 const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
 const injectFile = path.resolve(__dirname, 'injected.html');
 const iconFile = path.resolve(__dirname, 'favicon.ico');
+const clientFile = '/client.js';
 const HOST = '127.0.0.1';
 const PORT = 7000;
 const watchedFiles = [];
 let firstSuccess = false;
 let ws;
+let serverProcess = null;
 const output = (file, data) =>
   new Promise((res, rej) => {
     outputFileSystem.writeFile(file, data, (error) => {
@@ -80,26 +83,58 @@ const compileHtml = () =>
       if (error) {
         rej(error);
       } else {
-        watchFile([htmlFile]);
+        watchFile([htmlFile], compileHtml);
         output('/index.html', data).then(res);
       }
     });
   });
-const compileScript = async () => {
-  const { deps, data } = await Webpack_1.default(entryFile);
-  watchFile([...deps, entryFile]);
-  fs.writeFileSync(path.join(__dirname, '../test', 'main.js'), data);
-  await output('/main.js', data);
-};
-const compile = async (fileExtension) => {
-  const startTime = perf_hooks_1.performance.now();
-  if (fileExtension === undefined) {
-    await Promise.all([compileHtml(), compileScript()]);
-  } else if (fileExtension === '.html') {
-    await compileHtml();
-  } else {
-    await compileScript();
+const compileScript = async (options) => {
+  const { entry, callback, outputFile, target } = options;
+  const result = await Webpack_1.default(entry, target);
+  if (result !== null) {
+    const { deps, data } = result;
+    watchFile([...deps, entry], callback);
+    if (outputFile) {
+      await output(outputFile, data);
+    }
+    return data;
   }
+  return '';
+};
+const compileClientScript = () => {
+  const options = {
+    entry: clientEntry,
+    callback: compileClientScript,
+    outputFile: clientFile,
+  };
+  return compileScript(options);
+};
+const compileServerScript = async () => {
+  const options = {
+    entry: serverEntry,
+    callback: compileServerScript,
+    target: 'node',
+  };
+  const data = await compileScript(options);
+  void (function effect() {
+    if (serverProcess !== null) {
+      serverProcess.kill();
+      serverProcess = null;
+    }
+    serverProcess = child_process_1.spawn('node', ['-e', data], {
+      stdio: 'inherit',
+    });
+  })();
+};
+const compile = async (compileFunction) => {
+  const startTime = perf_hooks_1.performance.now();
+  const compileTasks = [];
+  if (compileFunction === undefined) {
+    compileTasks.push(compileHtml(), compileClientScript(), compileServerScript());
+  } else {
+    compileTasks.push(compileFunction());
+  }
+  await Promise.all(compileTasks);
   console.log('');
   console.log(chalk_1.default.blue(new Date().toLocaleString('zh')));
   console.log(
@@ -113,8 +148,8 @@ const compile = async (fileExtension) => {
     ws.send('reload');
   }
 };
-const debounceCompile = utils_1.debounce(compile, 100);
-function watchFile(files) {
+const debounceCompile = utils_1.debounce(compile, 150);
+function watchFile(files, callback) {
   const unwatchFiles = files.reduce((acc, cur) => {
     if (!watchedFiles.includes(cur)) {
       acc.push(cur);
@@ -124,9 +159,9 @@ function watchFile(files) {
   if (unwatchFiles.length !== 0) {
     watchedFiles.push(...unwatchFiles);
     for (const bundle of unwatchFiles) {
-      fs.watch(bundle, (event, filename) => {
+      fs.watch(bundle, (event) => {
         if (event === 'change') {
-          debounceCompile.call(compile, path.extname(filename));
+          debounceCompile.call(compile, callback);
         }
       });
     }
@@ -137,11 +172,11 @@ const main = async () => {
   process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
   const targetURL = `http://${HOST}:${PORT}`;
   console.log(`Starting server on ${chalk_1.default.green.bold(targetURL)}`);
-  const server = http.createServer((req, res) => {
+  const server = http_1.createServer((req, res) => {
     switch (req.url) {
-      case '/main.js':
+      case clientFile:
         res.setHeader('Content-Type', 'text/javascript');
-        outputFileSystem.createReadStream('/main.js').pipe(res);
+        outputFileSystem.createReadStream(clientFile).pipe(res);
         break;
       case '/favicon.ico':
         res.setHeader('Content-Type', 'image/x-icon');

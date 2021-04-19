@@ -48,8 +48,10 @@ const parser = __importStar(require('@babel/parser'));
 const babel = __importStar(require('@babel/core'));
 const traverse_1 = __importDefault(require('@babel/traverse'));
 const resolve_1 = __importDefault(require('resolve'));
+const builtins_1 = require('./builtins');
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
 const cwd = process.cwd();
+let moduleTarget = 'broswer';
 process.env.NODE_ENV = 'development';
 const generateCode = (ast, filename) =>
   new Promise((res, rej) => {
@@ -133,9 +135,14 @@ const resolveFile = (name, basedir) =>
 const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
   const { deps, filePath } = graphItem;
   if (deps && deps.length !== 0) {
-    const basedir = path.dirname(filePath);
     // 循环对应模块的依赖项
     const getTask = async (dep) => {
+      if (moduleTarget === 'node') {
+        if (builtins_1.nodeTarget.includes(dep)) {
+          return;
+        }
+      }
+      const basedir = path.dirname(filePath);
       const depPath = await resolveFile(dep, basedir);
       if (!depPath) throw new Error('No file');
       const existedDep = dependencyMap.get(depPath);
@@ -158,6 +165,8 @@ const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
   }
 };
 const analysisDependency = async (entry) => {
+  const exist = await fs.stat(entry);
+  if (!exist) return null;
   // 获取模块信息
   const entryInfo = await createModuleInfo(entry);
   // TODO 目前仅支持单入口
@@ -204,10 +213,17 @@ const pack = (graphItems) => {
   `;
   return iifeBundler;
 };
-const main = async (entry) => {
-  const { dependencyMap, graphItems } = await analysisDependency(entry);
-  const data = pack(graphItems);
-  return { deps: [...dependencyMap.keys()], data };
+const main = async (entry, target) => {
+  if (target !== undefined) {
+    moduleTarget = target;
+  }
+  const analysisResult = await analysisDependency(entry);
+  if (analysisResult !== null) {
+    const { dependencyMap, graphItems } = analysisResult;
+    const data = pack(graphItems);
+    return { deps: [...dependencyMap.keys()], data };
+  }
+  return null;
 };
 // void (async function test() {
 //   const entryDir = path.join(process.cwd(), 'example', 'webpack-test');

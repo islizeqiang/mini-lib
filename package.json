@@ -4,9 +4,8 @@
   "private": "true",
   "description": "mini lib",
   "scripts": {
-    "start": "npm run watch:dev-script & npm run dev",
     "dev": "nodemon --watch $npm_package_config_develop_scripts $npm_package_config_develop_scripts/dev.js $npm_package_config_entry",
-    "watch:dev-script": "npm run compile:dev-script -- --watch",
+    "watch:dev-script": "npm run compile:dev-script -- --watch --preserveWatchOutput",
     "compile:dev-script": "tsc mini-lib/dev --outDir $npm_package_config_develop_scripts --module CommonJS --target ESNext --downlevelIteration --esModuleInterop",
     "postinstall": "husky install"
   },

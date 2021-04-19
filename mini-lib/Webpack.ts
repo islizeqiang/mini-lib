@@ -4,6 +4,7 @@ import * as parser from '@babel/parser';
 import * as babel from '@babel/core';
 import traverse from '@babel/traverse';
 import resolve from 'resolve';
+import { nodeTarget } from './builtins';
 
 interface ModuleInfo {
   id: string;
@@ -18,7 +19,7 @@ type DependencyMap = Map<string, string>;
 
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
 const cwd = process.cwd();
-
+let moduleTarget: string = 'broswer';
 process.env.NODE_ENV = 'development';
 
 const generateCode = (ast: babel.types.File, filename: string): Promise<string> =>
@@ -114,10 +115,14 @@ const flatDependencyGraph = async (
   const { deps, filePath } = graphItem;
 
   if (deps && deps.length !== 0) {
-    const basedir = path.dirname(filePath);
-
     // 循环对应模块的依赖项
     const getTask = async (dep: string) => {
+      if (moduleTarget === 'node') {
+        if (nodeTarget.includes(dep)) {
+          return;
+        }
+      }
+      const basedir = path.dirname(filePath);
       const depPath = await resolveFile(dep, basedir);
       if (!depPath) throw new Error('No file');
 
@@ -147,6 +152,8 @@ const flatDependencyGraph = async (
 };
 
 const analysisDependency = async (entry: string) => {
+  const exist = await fs.stat(entry);
+  if (!exist) return null;
   // 获取模块信息
   const entryInfo = await createModuleInfo(entry);
   // TODO 目前仅支持单入口
@@ -197,11 +204,17 @@ const pack = (graphItems: GraphItem[]) => {
   return iifeBundler;
 };
 
-const main = async (entry: string) => {
-  const { dependencyMap, graphItems } = await analysisDependency(entry);
-
-  const data = pack(graphItems);
-  return { deps: [...dependencyMap.keys()], data };
+const main = async (entry: string, target?: string) => {
+  if (target !== undefined) {
+    moduleTarget = target;
+  }
+  const analysisResult = await analysisDependency(entry);
+  if (analysisResult !== null) {
+    const { dependencyMap, graphItems } = analysisResult;
+    const data = pack(graphItems);
+    return { deps: [...dependencyMap.keys()], data };
+  }
+  return null;
 };
 
 // void (async function test() {
