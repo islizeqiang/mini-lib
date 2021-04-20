@@ -1,19 +1,25 @@
-// const fs = require('fs');
-// const path = require('path');
-// const vm = require('vm');
-// const http = require('http');
-import http from 'http';
+import Koa from '../../mini-lib/Koa';
+import { PORT } from './config';
 
-// const data = fs.readFileSync(path.join(__dirname, 'config.js'), 'utf-8');
-// let sandbox = {
-//   require,
-//   console,
-// };
-// const a = vm.runInNewContext(data, sandbox);
-// console.log('a: ', a);
+const app = new Koa();
 
-http
-  .createServer((req, res) => {
-    res.end('哈哈哈');
-  })
-  .listen(3000);
+app.use(async (ctx, next) => {
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start;
+  console.log(`${ctx.req.method} ${ctx.req.url} - ${ms}ms`);
+});
+
+app.use((ctx, next) => {
+  ctx.res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+});
+
+app.use((ctx, next) => {
+  ctx.body = JSON.stringify('Hello World');
+  // next();
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://127.0.0.1:${PORT}/`);
+});

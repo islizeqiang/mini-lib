@@ -152,7 +152,6 @@ const main = async () => {
   process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
 
   const targetURL = `http://${HOST}:${PORT}`;
-  console.log(`Starting server on ${chalk.green.bold(targetURL)}`);
 
   const server = createServer((req, res) => {
     switch (req.url) {
@@ -174,7 +173,9 @@ const main = async () => {
     }
   });
 
-  server.listen(PORT, HOST);
+  server.listen(PORT, HOST, () => {
+    console.log(`Starting server on ${chalk.green.bold(targetURL)}`);
+  });
 
   server.addListener('upgrade', (request, socket, head) => {
     if (isWebSocket(request)) {

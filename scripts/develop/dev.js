@@ -171,7 +171,6 @@ const main = async () => {
   // console.clear();
   process.stdout.write('\x1B[2J\x1B[3J\x1B[H');
   const targetURL = `http://${HOST}:${PORT}`;
-  console.log(`Starting server on ${chalk_1.default.green.bold(targetURL)}`);
   const server = http_1.createServer((req, res) => {
     switch (req.url) {
       case clientFile:
@@ -193,7 +192,9 @@ const main = async () => {
         break;
     }
   });
-  server.listen(PORT, HOST);
+  server.listen(PORT, HOST, () => {
+    console.log(`Starting server on ${chalk_1.default.green.bold(targetURL)}`);
+  });
   server.addListener('upgrade', (request, socket, head) => {
     if (utils_1.isWebSocket(request)) {
       ws = new WebSocket(request, socket, head);
