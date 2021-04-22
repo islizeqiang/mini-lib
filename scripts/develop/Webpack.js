@@ -1,52 +1,15 @@
 'use strict';
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        Object.defineProperty(o, k2, {
-          enumerable: true,
-          get: function () {
-            return m[k];
-          },
-        });
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, 'default', { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o['default'] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null)
-      for (var k in mod)
-        if (k !== 'default' && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-  };
 var __importDefault =
   (this && this.__importDefault) ||
   function (mod) {
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, '__esModule', { value: true });
-const fs = __importStar(require('fs-extra'));
-const path = __importStar(require('path'));
-const parser = __importStar(require('@babel/parser'));
-const babel = __importStar(require('@babel/core'));
+const path_1 = __importDefault(require('path'));
+const fs_extra_1 = __importDefault(require('fs-extra'));
 const traverse_1 = __importDefault(require('@babel/traverse'));
+const parser_1 = require('@babel/parser');
+const core_1 = require('@babel/core');
 const resolve_1 = __importDefault(require('resolve'));
 const builtins_1 = require('./builtins');
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
@@ -55,7 +18,7 @@ let moduleTarget = 'broswer';
 process.env.NODE_ENV = 'development';
 const generateCode = (ast, filename) =>
   new Promise((res, rej) => {
-    babel.transformFromAst(
+    core_1.transformFromAst(
       ast,
       undefined,
       {
@@ -97,9 +60,9 @@ const generateCode = (ast, filename) =>
   });
 const createModuleInfo = async (filePath, fileId) => {
   // 读取模块源代码
-  const content = await fs.readFile(filePath, 'utf-8');
+  const content = await fs_extra_1.default.readFile(filePath, 'utf-8');
   // 对源代码进行 AST 产出
-  const ast = parser.parse(content, {
+  const ast = parser_1.parse(content, {
     sourceType: 'unambiguous',
     allowImportExportEverywhere: true,
     plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
@@ -112,7 +75,7 @@ const createModuleInfo = async (filePath, fileId) => {
       deps.push(node.source.value);
     },
   });
-  const id = `'${fileId || path.basename(filePath)}'`;
+  const id = `'${fileId || path_1.default.basename(filePath)}'`;
   // 编译为 ES5
   const code = await generateCode(ast, id);
   return {
@@ -142,7 +105,7 @@ const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
           return;
         }
       }
-      const basedir = path.dirname(filePath);
+      const basedir = path_1.default.dirname(filePath);
       const depPath = await resolveFile(dep, basedir);
       if (!depPath) throw new Error('No file');
       const existedDep = dependencyMap.get(depPath);
@@ -165,7 +128,7 @@ const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
   }
 };
 const analysisDependency = async (entry) => {
-  const exist = await fs.stat(entry);
+  const exist = await fs_extra_1.default.stat(entry);
   if (!exist) return null;
   // 获取模块信息
   const entryInfo = await createModuleInfo(entry);

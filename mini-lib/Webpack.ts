@@ -1,10 +1,14 @@
-import * as fs from 'fs-extra';
-import * as path from 'path';
-import * as parser from '@babel/parser';
-import * as babel from '@babel/core';
+import path from 'path';
+import fs from 'fs-extra';
+
 import traverse from '@babel/traverse';
+import { parse as babelParse } from '@babel/parser';
+import { transformFromAst } from '@babel/core';
 import resolve from 'resolve';
+
 import { nodeTarget } from './builtins';
+
+import type babel from '@babel/core';
 
 interface ModuleInfo {
   id: string;
@@ -24,7 +28,7 @@ process.env.NODE_ENV = 'development';
 
 const generateCode = (ast: babel.types.File, filename: string): Promise<string> =>
   new Promise((res, rej) => {
-    babel.transformFromAst(
+    transformFromAst(
       ast,
       undefined,
       {
@@ -69,7 +73,7 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
   // 读取模块源代码
   const content = await fs.readFile(filePath, 'utf-8');
   // 对源代码进行 AST 产出
-  const ast = parser.parse(content, {
+  const ast = babelParse(content, {
     sourceType: 'unambiguous',
     allowImportExportEverywhere: true,
     plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],

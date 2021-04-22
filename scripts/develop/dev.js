@@ -1,55 +1,15 @@
 'use strict';
-var __createBinding =
-  (this && this.__createBinding) ||
-  (Object.create
-    ? function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        Object.defineProperty(o, k2, {
-          enumerable: true,
-          get: function () {
-            return m[k];
-          },
-        });
-      }
-    : function (o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-      });
-var __setModuleDefault =
-  (this && this.__setModuleDefault) ||
-  (Object.create
-    ? function (o, v) {
-        Object.defineProperty(o, 'default', { enumerable: true, value: v });
-      }
-    : function (o, v) {
-        o['default'] = v;
-      });
-var __importStar =
-  (this && this.__importStar) ||
-  function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null)
-      for (var k in mod)
-        if (k !== 'default' && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-  };
 var __importDefault =
   (this && this.__importDefault) ||
   function (mod) {
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, '__esModule', { value: true });
-/* eslint-disable func-names */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable no-console */
 const chalk_1 = __importDefault(require('chalk'));
 const perf_hooks_1 = require('perf_hooks');
 const memfs_1 = require('memfs');
-const fs = __importStar(require('fs'));
-const path = __importStar(require('path'));
+const fs_1 = __importDefault(require('fs'));
+const path_1 = __importDefault(require('path'));
 const http_1 = require('http');
 const child_process_1 = require('child_process');
 const utils_1 = require('./utils');
@@ -58,11 +18,11 @@ const open = require('open');
 const WebSocket = require('faye-websocket');
 const outputFileSystem = memfs_1.createFsFromVolume(new memfs_1.Volume());
 const entryDir = process.argv[2];
-const clientEntry = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
-const serverEntry = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
-const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
-const injectFile = path.resolve(__dirname, 'injected.html');
-const iconFile = path.resolve(__dirname, 'favicon.ico');
+const clientEntry = path_1.default.resolve(process.cwd(), `example/${entryDir}/index.js`);
+const serverEntry = path_1.default.resolve(process.cwd(), `example/${entryDir}/server.js`);
+const htmlFile = path_1.default.resolve(process.cwd(), `example/${entryDir}/index.html`);
+const injectFile = path_1.default.resolve(__dirname, 'injected.html');
+const iconFile = path_1.default.resolve(__dirname, 'favicon.ico');
 const clientFile = '/client.js';
 const HOST = '127.0.0.1';
 const PORT = 7000;
@@ -82,7 +42,7 @@ const output = (file, data) =>
   });
 const compileHtml = () =>
   new Promise((res, rej) => {
-    fs.readFile(htmlFile, (error, data) => {
+    fs_1.default.readFile(htmlFile, (error, data) => {
       if (error) {
         rej(error);
       } else {
@@ -114,7 +74,7 @@ const compileClientScript = () => {
 };
 const compileServerScript = () =>
   new Promise((res, rej) => {
-    fs.access(serverEntry, (error) => {
+    fs_1.default.access(serverEntry, (error) => {
       if (error === null) {
         const options = {
           entry: serverEntry,
@@ -192,7 +152,7 @@ function watchFile(files, callback) {
   if (unwatchFiles.length !== 0) {
     watchedFiles.push(...unwatchFiles);
     for (const bundle of unwatchFiles) {
-      fs.watch(bundle, (event) => {
+      fs_1.default.watch(bundle, (event) => {
         if (event === 'change') {
           debounceCompile.call(compile, callback);
         }
@@ -213,14 +173,14 @@ const main = async () => {
         break;
       case '/favicon.ico':
         res.setHeader('Content-Type', 'image/x-icon');
-        fs.createReadStream(iconFile).pipe(res);
+        fs_1.default.createReadStream(iconFile).pipe(res);
         break;
       default:
         res.setHeader('Content-Type', 'text/html');
         utils_1
           .concatStreams([
             outputFileSystem.createReadStream('/index.html'),
-            fs.createReadStream(injectFile),
+            fs_1.default.createReadStream(injectFile),
           ])
           .pipe(res);
         break;

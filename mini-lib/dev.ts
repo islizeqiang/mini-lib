@@ -1,11 +1,8 @@
-/* eslint-disable func-names */
-/* eslint-disable @typescript-eslint/ban-types */
-/* eslint-disable no-console */
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 import { createFsFromVolume, Volume } from 'memfs';
-import * as fs from 'fs';
-import * as path from 'path';
+import fs from 'fs';
+import path from 'path';
 import { createServer } from 'http';
 import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
