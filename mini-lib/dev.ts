@@ -1,3 +1,6 @@
+/* eslint-disable func-names */
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable no-console */
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 import { createFsFromVolume, Volume } from 'memfs';
@@ -7,7 +10,7 @@ import { createServer } from 'http';
 import { spawn } from 'child_process';
 import type { ChildProcess } from 'child_process';
 
-import { debounce, isWebSocket, concatStreams } from './utils';
+import { isWebSocket, concatStreams } from './utils';
 import scriptBundler from './Webpack';
 
 const open = require('open');
@@ -84,50 +87,78 @@ const compileClientScript = () => {
   return compileScript(options);
 };
 
-const compileServerScript = async () => {
-  const options = {
-    entry: serverEntry,
-    callback: compileServerScript,
-    target: 'node',
-  };
-  const data = await compileScript(options);
-  void (function effect() {
-    if (serverProcess !== null) {
-      serverProcess.kill();
-      serverProcess = null;
-    }
-    serverProcess = spawn('node', ['-e', data], {
-      stdio: 'inherit',
+const compileServerScript = () =>
+  new Promise<void>((res, rej) => {
+    fs.access(serverEntry, (error) => {
+      if (error === null) {
+        const options = {
+          entry: serverEntry,
+          callback: compileServerScript,
+          target: 'node',
+        };
+        compileScript(options)
+          .then((data) => {
+            if (serverProcess !== null) {
+              serverProcess.kill();
+              serverProcess = null;
+            }
+            serverProcess = spawn('node', ['-e', data], {
+              stdio: 'inherit',
+            });
+            setTimeout(res, 100);
+          })
+          .catch((err) => {
+            rej(err);
+          });
+      } else {
+        res();
+      }
     });
-  })();
+  });
+
+const compile = async (compileFunctions?: Function[]) => {
+  try {
+    console.clear();
+    console.log(chalk.blue(new Date().toLocaleString('zh')));
+    const startTime = performance.now();
+    const compileTasks: Promise<unknown>[] = [];
+    if (compileFunctions === void 0) {
+      compileTasks.push(compileHtml(), compileClientScript(), compileServerScript());
+    } else {
+      compileTasks.push(...compileFunctions.map((fn) => fn()));
+    }
+    await Promise.all(compileTasks);
+    if (!firstSuccess) {
+      firstSuccess = true;
+    } else {
+      ws.send('reload');
+    }
+    console.log();
+    console.log(
+      chalk.green.bold(
+        `Reload Successfully in ${((performance.now() - startTime) / 1000).toFixed(2)}s`,
+      ),
+    );
+  } catch (error) {
+    console.log(chalk.red(error));
+    console.log(error);
+  }
 };
 
-const compile = async (compileFunction?: Function) => {
-  const startTime = performance.now();
-  const compileTasks = [];
-  if (compileFunction === undefined) {
-    compileTasks.push(compileHtml(), compileClientScript(), compileServerScript());
-  } else {
-    compileTasks.push(compileFunction());
-  }
-  await Promise.all(compileTasks);
-  console.log('');
-  console.log(chalk.blue(new Date().toLocaleString('zh')));
-  console.log(
-    `Compile successfully in ${chalk.cyan.bold(
-      `${((performance.now() - startTime) / 1000).toFixed(2)}s`,
-    )}`,
-  );
-  if (!firstSuccess) {
-    firstSuccess = true;
-  } else {
-    ws.send('reload');
-  }
-};
+const debounceCompile = (<T extends Function, Callback extends Function>(func: T, ms: number) => {
+  let timeoutId: NodeJS.Timeout;
+  const callbackStack = new Set<Callback>();
+  return function (this: T, callback: Callback) {
+    callbackStack.add(callback);
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.call(this, [...callbackStack]);
+      callbackStack.clear();
+    }, ms);
+  };
+})(compile, 150);
 
-const debounceCompile = debounce(compile, 150);
-
-function watchFile(files: string[], callback: Function) {
+function watchFile<Callback extends Function>(files: string[], callback: Callback) {
   const unwatchFiles = files.reduce((acc: string[], cur) => {
     if (!watchedFiles.includes(cur)) {
       acc.push(cur);
@@ -144,6 +175,8 @@ function watchFile(files: string[], callback: Function) {
         }
       });
     }
+
+    watchedFiles.push(...unwatchFiles);
   }
 }
 
@@ -174,7 +207,7 @@ const main = async () => {
   });
 
   server.listen(PORT, HOST, () => {
-    console.log(`Starting server on ${chalk.green.bold(targetURL)}`);
+    console.log(`Starting client on ${chalk.magenta(targetURL)}`);
   });
 
   server.addListener('upgrade', (request, socket, head) => {

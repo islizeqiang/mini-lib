@@ -1,14 +1,17 @@
 import EventEmitter from 'events';
 import { createServer } from 'http';
+import { Stream } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 type Middleware = Function[];
 
-interface KoaContext {
+export interface KoaContext {
   app: Koa;
-  req: IncomingMessage;
-  res: ServerResponse;
-  body?: unknown;
+  request: IncomingMessage;
+  response: ServerResponse;
+  body?: string | null | undefined | Stream;
+  status?: number;
+  [propName: string]: unknown;
 }
 
 interface FnMiddleware {
@@ -19,7 +22,7 @@ interface Compose {
   (middleware: Middleware): FnMiddleware;
 }
 
-const compose: Compose = (middleware) => {
+export const compose: Compose = (middleware) => {
   if (!Array.isArray(middleware)) {
     throw new TypeError('Middleware stack must be an array!');
   }
@@ -76,17 +79,21 @@ class Koa extends EventEmitter {
   private callback = (req: IncomingMessage, res: ServerResponse) => {
     const context = Object.create(this.context);
     context.app = this;
-    context.req = req;
-    context.res = res;
+    context.request = req;
+    context.response = res;
     return this.handleRequest(context, compose(this.middleware));
   };
 
   private handleRequest = (ctx: KoaContext, fnMiddleware: FnMiddleware) =>
     fnMiddleware(ctx)
       .then(() => {
-        const { res } = ctx;
-        const { body } = ctx;
-        return res.end(body);
+        const { response, body, status } = ctx;
+
+        if (status !== void 0 && [204, 205, 304].includes(status)) return response.end();
+        if (Buffer.isBuffer(body)) return response.end(body);
+        if (body instanceof Stream) return body.pipe(response);
+
+        return response.end(JSON.stringify(body));
       })
       .catch((error) => {
         console.log('error: ', error);

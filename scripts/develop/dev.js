@@ -42,6 +42,9 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, '__esModule', { value: true });
+/* eslint-disable func-names */
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable no-console */
 const chalk_1 = __importDefault(require('chalk'));
 const perf_hooks_1 = require('perf_hooks');
 const memfs_1 = require('memfs');
@@ -109,46 +112,76 @@ const compileClientScript = () => {
   };
   return compileScript(options);
 };
-const compileServerScript = async () => {
-  const options = {
-    entry: serverEntry,
-    callback: compileServerScript,
-    target: 'node',
-  };
-  const data = await compileScript(options);
-  void (function effect() {
-    if (serverProcess !== null) {
-      serverProcess.kill();
-      serverProcess = null;
-    }
-    serverProcess = child_process_1.spawn('node', ['-e', data], {
-      stdio: 'inherit',
+const compileServerScript = () =>
+  new Promise((res, rej) => {
+    fs.access(serverEntry, (error) => {
+      if (error === null) {
+        const options = {
+          entry: serverEntry,
+          callback: compileServerScript,
+          target: 'node',
+        };
+        compileScript(options)
+          .then((data) => {
+            if (serverProcess !== null) {
+              serverProcess.kill();
+              serverProcess = null;
+            }
+            serverProcess = child_process_1.spawn('node', ['-e', data], {
+              stdio: 'inherit',
+            });
+            setTimeout(res, 100);
+          })
+          .catch((err) => {
+            rej(err);
+          });
+      } else {
+        res();
+      }
     });
-  })();
-};
-const compile = async (compileFunction) => {
-  const startTime = perf_hooks_1.performance.now();
-  const compileTasks = [];
-  if (compileFunction === undefined) {
-    compileTasks.push(compileHtml(), compileClientScript(), compileServerScript());
-  } else {
-    compileTasks.push(compileFunction());
+  });
+const compile = async (compileFunctions) => {
+  try {
+    console.clear();
+    console.log(chalk_1.default.blue(new Date().toLocaleString('zh')));
+    const startTime = perf_hooks_1.performance.now();
+    const compileTasks = [];
+    if (compileFunctions === void 0) {
+      compileTasks.push(compileHtml(), compileClientScript(), compileServerScript());
+    } else {
+      compileTasks.push(...compileFunctions.map((fn) => fn()));
+    }
+    await Promise.all(compileTasks);
+    if (!firstSuccess) {
+      firstSuccess = true;
+    } else {
+      ws.send('reload');
+    }
+    console.log();
+    console.log(
+      chalk_1.default.green.bold(
+        `Reload Successfully in ${((perf_hooks_1.performance.now() - startTime) / 1000).toFixed(
+          2,
+        )}s`,
+      ),
+    );
+  } catch (error) {
+    console.log(chalk_1.default.red(error));
+    console.log(error);
   }
-  await Promise.all(compileTasks);
-  console.log('');
-  console.log(chalk_1.default.blue(new Date().toLocaleString('zh')));
-  console.log(
-    `Compile successfully in ${chalk_1.default.cyan.bold(
-      `${((perf_hooks_1.performance.now() - startTime) / 1000).toFixed(2)}s`,
-    )}`,
-  );
-  if (!firstSuccess) {
-    firstSuccess = true;
-  } else {
-    ws.send('reload');
-  }
 };
-const debounceCompile = utils_1.debounce(compile, 150);
+const debounceCompile = ((func, ms) => {
+  let timeoutId;
+  const callbackStack = new Set();
+  return function (callback) {
+    callbackStack.add(callback);
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.call(this, [...callbackStack]);
+      callbackStack.clear();
+    }, ms);
+  };
+})(compile, 150);
 function watchFile(files, callback) {
   const unwatchFiles = files.reduce((acc, cur) => {
     if (!watchedFiles.includes(cur)) {
@@ -165,6 +198,7 @@ function watchFile(files, callback) {
         }
       });
     }
+    watchedFiles.push(...unwatchFiles);
   }
 }
 const main = async () => {
@@ -193,7 +227,7 @@ const main = async () => {
     }
   });
   server.listen(PORT, HOST, () => {
-    console.log(`Starting server on ${chalk_1.default.green.bold(targetURL)}`);
+    console.log(`Starting client on ${chalk_1.default.magenta(targetURL)}`);
   });
   server.addListener('upgrade', (request, socket, head) => {
     if (utils_1.isWebSocket(request)) {
