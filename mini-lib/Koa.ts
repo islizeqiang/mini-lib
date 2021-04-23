@@ -10,8 +10,6 @@ export interface KoaContext {
   request: IncomingMessage;
   response: ServerResponse;
   body?: string | null | undefined | Stream;
-  status?: number;
-  [propName: string]: unknown;
 }
 
 interface FnMiddleware {
@@ -87,16 +85,20 @@ class Koa extends EventEmitter {
   private handleRequest = (ctx: KoaContext, fnMiddleware: FnMiddleware) =>
     fnMiddleware(ctx)
       .then(() => {
-        const { response, body, status } = ctx;
+        const { response, body } = ctx;
 
-        if (status !== void 0 && [204, 205, 304].includes(status)) return response.end();
+        if (response.statusCode !== void 0 && [204, 205, 304].includes(response.statusCode))
+          return response.end();
         if (Buffer.isBuffer(body)) return response.end(body);
         if (body instanceof Stream) return body.pipe(response);
 
         return response.end(JSON.stringify(body));
       })
       .catch((error) => {
-        console.log('error: ', error);
+        const msg = error.stack || error.toString();
+        console.error(`\n${msg.replace(/^/gm, '  ')}\n`);
+        ctx.response.statusCode = 404;
+        ctx.response.end('Not Found');
       });
 }
 

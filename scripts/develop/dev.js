@@ -126,8 +126,8 @@ const compile = async (compileFunctions) => {
       ),
     );
   } catch (error) {
-    console.log(chalk_1.default.red(error));
-    console.log(error);
+    const msg = error.stack || error.toString();
+    console.log(chalk_1.default.red(`\n${msg.replace(/^/gm, '  ')}\n`));
   }
 };
 const debounceCompile = ((func, ms) => {

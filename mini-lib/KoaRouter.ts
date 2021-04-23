@@ -58,7 +58,8 @@ class Router {
   };
 
   public allowedMethods = () => {
-    return (ctx: KoaContext) => {
+    return async (ctx: KoaContext, next: Function) => {
+      await next();
       const {
         request: { method },
       } = ctx;
@@ -77,7 +78,6 @@ class Router {
         request: { url, method },
       } = ctx;
       const matched = this.match(url, method);
-      ctx.router = this;
       if (!matched.route) return next();
       const layerChain = matched.pathAndMethod.map((layer) => layer.stack).flat();
       return compose(layerChain)(ctx, next);

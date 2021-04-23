@@ -137,8 +137,8 @@ const compile = async (compileFunctions?: Function[]) => {
       ),
     );
   } catch (error) {
-    console.log(chalk.red(error));
-    console.log(error);
+    const msg = error.stack || error.toString();
+    console.log(chalk.red(`\n${msg.replace(/^/gm, '  ')}\n`));
   }
 };
 
