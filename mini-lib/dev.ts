@@ -10,7 +10,7 @@ import type { ChildProcess } from 'child_process';
 import { isWebSocket, concatStreams } from './utils';
 import scriptBundler from './Webpack';
 
-const open = require('open');
+const open = require('open-browser');
 const WebSocket = require('faye-websocket');
 
 const outputFileSystem = createFsFromVolume(new Volume());

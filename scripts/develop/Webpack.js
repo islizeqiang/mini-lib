@@ -13,7 +13,7 @@ const core_1 = require('@babel/core');
 const resolve_1 = __importDefault(require('resolve'));
 const builtins_1 = require('./builtins');
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-const cwd = process.cwd();
+const cwd = process.cwd().split(path_1.default.sep).join('/');
 let moduleTarget = 'broswer';
 process.env.NODE_ENV = 'development';
 const generateCode = (ast, filename) =>
@@ -106,8 +106,10 @@ const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
         }
       }
       const basedir = path_1.default.dirname(filePath);
-      const depPath = await resolveFile(dep, basedir);
-      if (!depPath) throw new Error('No file');
+      const file = await resolveFile(dep, basedir);
+      if (!file) throw new Error('No file');
+      // 进行格式化统一
+      const depPath = file.split(path_1.default.sep).join('/');
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {
         const fileId = depPath.replace(cwd, '.');

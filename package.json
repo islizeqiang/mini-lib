@@ -18,7 +18,7 @@
     "faye-websocket": "^0.11.3",
     "fs-extra": "^9.1.0",
     "memfs": "^3.2.2",
-    "open": "file:lib\\open",
+    "open-browser": "file:lib\\open-browser",
     "resolve": "^1.20.0"
   },
   "devDependencies": {

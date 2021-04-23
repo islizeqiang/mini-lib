@@ -22,7 +22,7 @@ interface GraphItem extends ModuleInfo {
 type DependencyMap = Map<string, string>;
 
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-const cwd = process.cwd();
+const cwd = process.cwd().split(path.sep).join('/');
 let moduleTarget: string = 'broswer';
 process.env.NODE_ENV = 'development';
 
@@ -127,8 +127,10 @@ const flatDependencyGraph = async (
         }
       }
       const basedir = path.dirname(filePath);
-      const depPath = await resolveFile(dep, basedir);
-      if (!depPath) throw new Error('No file');
+      const file = await resolveFile(dep, basedir);
+      if (!file) throw new Error('No file');
+      // 进行格式化统一
+      const depPath = file.split(path.sep).join('/');
 
       const existedDep = dependencyMap.get(depPath);
       if (existedDep === undefined) {

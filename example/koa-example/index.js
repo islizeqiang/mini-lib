@@ -24,7 +24,7 @@ Promise.all([
   }).then(callback),
 ]);
 
-const node = document.body.appendChild(
+document.body.appendChild(
   document
     .createRange()
     .createContextualFragment(`<img src="http://127.0.0.1:3000/test.jpg"></img>`),
