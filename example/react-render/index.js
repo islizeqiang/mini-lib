@@ -1,6 +1,4 @@
-import * as React from '../../mini-lib/React';
-
-const { createElement, Component, render } = React;
+import React from '../../mini-lib/React';
 
 function calculateWinner(squares) {
   const lines = [
@@ -22,7 +20,7 @@ function calculateWinner(squares) {
   return null;
 }
 
-class Square extends Component {
+class Square extends React.Component {
   render() {
     return (
       <button onClick={this.props.onClick} className="square">
@@ -32,7 +30,7 @@ class Square extends Component {
   }
 }
 
-class Board extends Component {
+class Board extends React.Component {
   renderSquare(i) {
     return <Square value={this.props.squares[i]} onClick={() => this.props.onClick(i)} />;
   }
@@ -60,7 +58,7 @@ class Board extends Component {
   }
 }
 
-class Game extends Component {
+class Game extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -135,4 +133,4 @@ class Game extends Component {
   }
 }
 
-render(<Game />, document.getElementById('root'));
+React.render(<Game />, document.getElementById('root'));

@@ -1,14 +1,11 @@
 import path from 'path';
 import fs from 'fs-extra';
-
 import traverse from '@babel/traverse';
 import { parse as babelParse } from '@babel/parser';
 import { transformFromAst } from '@babel/core';
 import resolve from 'resolve';
-
-import { nodeTarget } from './builtins';
-
 import type babel from '@babel/core';
+import { nodeTarget } from './builtins';
 
 interface ModuleInfo {
   id: string;
@@ -30,7 +27,7 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
   new Promise((res, rej) => {
     transformFromAst(
       ast,
-      undefined,
+      void 0,
       {
         ast: true,
         comments: false,
@@ -73,7 +70,7 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
   // 读取模块源代码
   const content = await fs.readFile(filePath, 'utf-8');
   // 对源代码进行 AST 产出
-  const ast = babelParse(content, {
+  const AST = babelParse(content, {
     sourceType: 'unambiguous',
     allowImportExportEverywhere: true,
     plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
@@ -81,7 +78,7 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
   // 相关模块依赖数组
   const deps: string[] = [];
   // 遍历模块 AST，将依赖推入 deps 数组中
-  traverse(ast, {
+  traverse(AST, {
     ImportDeclaration: ({ node }) => {
       deps.push(node.source.value);
     },
@@ -90,7 +87,7 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
   const id = `'${fileId || path.basename(filePath)}'`;
 
   // 编译为 ES5
-  const code = await generateCode(ast, id);
+  const code = await generateCode(AST, id);
 
   return {
     id,
@@ -131,9 +128,8 @@ const flatDependencyGraph = async (
       if (!file) throw new Error('No file');
       // 进行格式化统一
       const depPath = file.split(path.sep).join('/');
-
       const existedDep = dependencyMap.get(depPath);
-      if (existedDep === undefined) {
+      if (existedDep === void 0) {
         const fileId = depPath.replace(cwd, '.');
 
         dependencyMap.set(depPath, fileId);
@@ -177,30 +173,30 @@ const analysisDependency = async (entry: string) => {
 
 const pack = (graphItems: GraphItem[]) => {
   const modules = graphItems
-    .map((module) => {
-      return `${module.id}: {
-          factory: function (exports, require) { ${module.code} },
-          map: ${JSON.stringify(module.map)}
-        }`;
-    })
+    .map(
+      (graphItem) =>
+        `${graphItem.id}: {
+            factory: function (exports, require) { ${graphItem.code} },
+            map: ${JSON.stringify(graphItem.map)},
+          }
+        `,
+    )
     .join();
   const iifeBundler = `(() => {
     const modules = { ${modules} };
-    const cache = {};
+    const moduleCache = {};
     const _require = (moduleId) => {
-      const __require = (requireDeclarationName) => {
-        const localModule = map[requireDeclarationName];
-        return localModule ? _require(localModule) : require(requireDeclarationName);
-      };
-      const cacheModule = cache[moduleId];
-      if (cacheModule !== undefined) {
-        return cacheModule.exports;
+      const cachedModule = moduleCache[moduleId];
+      if (cachedModule !== void 0) {
+        return cachedModule.exports;
       }
-      cache[moduleId] = {
+      const { factory, map } = modules[moduleId];
+      const __require = (declarationName) =>
+        Boolean(map[declarationName]) ? _require(map[declarationName]) : require(declarationName);
+      const module = {
         exports: {},
       };
-      const module = cache[moduleId];
-      const { factory, map } = modules[moduleId];
+      moduleCache[moduleId] = module;
       factory.call(module.exports, module.exports, __require);
       return module.exports;
     };
@@ -211,7 +207,7 @@ const pack = (graphItems: GraphItem[]) => {
 };
 
 const main = async (entry: string, target?: string) => {
-  if (target !== undefined) {
+  if (target !== void 0) {
     moduleTarget = target;
   }
   const analysisResult = await analysisDependency(entry);

@@ -25,7 +25,5 @@ Promise.all([
 ]);
 
 document.body.appendChild(
-  document
-    .createRange()
-    .createContextualFragment(`<img src="http://127.0.0.1:3000/test.jpg"></img>`),
+  document.createRange().createContextualFragment(`<img src="${base}/test.jpg"></img>`),
 );

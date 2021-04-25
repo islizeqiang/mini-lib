@@ -50,7 +50,7 @@ app.use(async (ctx, next) => {
 
 app.use(router.routes()).use(router.allowedMethods());
 
-app.use(serve(path.resolve(__dirname, 'example', 'koa-example', 'public')));
+app.use(serve(path.resolve(process.cwd(), 'example', 'koa-example', 'public')));
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://127.0.0.1:${PORT}/`);

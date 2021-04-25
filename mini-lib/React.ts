@@ -53,7 +53,7 @@ const isTextWrapper = (node: ReactNode): node is TextWrapper => node.type === '#
 
 const isElementWrapper = (node: ReactNode): node is ElementWrapper => node.type !== '#text';
 
-export class Component {
+class Component {
   props: Dict<unknown>;
   children: ReactNode[];
   _range: null | Range;
@@ -238,7 +238,7 @@ class TextWrapper extends Component {
   }
 }
 
-export function createElement(
+function createElement(
   type: ComponentClass | string,
   attributes: Attributes,
   ...children: ReactNode[]
@@ -275,10 +275,16 @@ export function createElement(
   return e;
 }
 
-export const render = (component: ComponentClass, parentElement: HTMLElement) => {
+const render = (component: ComponentClass, parentElement: HTMLElement) => {
   const range = document.createRange();
   range.setStart(parentElement, 0);
   range.setEnd(parentElement, parentElement.childNodes.length);
   range.deleteContents();
   component[RENDER_TO_DOM](range);
+};
+
+export default {
+  render,
+  createElement,
+  Component,
 };

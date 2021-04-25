@@ -20,7 +20,7 @@ const generateCode = (ast, filename) =>
   new Promise((res, rej) => {
     core_1.transformFromAst(
       ast,
-      undefined,
+      void 0,
       {
         ast: true,
         comments: false,
@@ -62,7 +62,7 @@ const createModuleInfo = async (filePath, fileId) => {
   // 读取模块源代码
   const content = await fs_extra_1.default.readFile(filePath, 'utf-8');
   // 对源代码进行 AST 产出
-  const ast = parser_1.parse(content, {
+  const AST = parser_1.parse(content, {
     sourceType: 'unambiguous',
     allowImportExportEverywhere: true,
     plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
@@ -70,14 +70,14 @@ const createModuleInfo = async (filePath, fileId) => {
   // 相关模块依赖数组
   const deps = [];
   // 遍历模块 AST，将依赖推入 deps 数组中
-  traverse_1.default(ast, {
+  traverse_1.default(AST, {
     ImportDeclaration: ({ node }) => {
       deps.push(node.source.value);
     },
   });
   const id = `'${fileId || path_1.default.basename(filePath)}'`;
   // 编译为 ES5
-  const code = await generateCode(ast, id);
+  const code = await generateCode(AST, id);
   return {
     id,
     filePath,
@@ -111,7 +111,7 @@ const flatDependencyGraph = async (graphItem, dependencyMap, graphItems) => {
       // 进行格式化统一
       const depPath = file.split(path_1.default.sep).join('/');
       const existedDep = dependencyMap.get(depPath);
-      if (existedDep === undefined) {
+      if (existedDep === void 0) {
         const fileId = depPath.replace(cwd, '.');
         dependencyMap.set(depPath, fileId);
         graphItem.map[dep] = fileId;
@@ -146,30 +146,29 @@ const analysisDependency = async (entry) => {
 };
 const pack = (graphItems) => {
   const modules = graphItems
-    .map((module) => {
-      return `${module.id}: {
-          factory: function (exports, require) { ${module.code} },
-          map: ${JSON.stringify(module.map)}
-        }`;
-    })
+    .map(
+      (graphItem) => `${graphItem.id}: {
+            factory: function (exports, require) { ${graphItem.code} },
+            map: ${JSON.stringify(graphItem.map)},
+          }
+        `,
+    )
     .join();
   const iifeBundler = `(() => {
     const modules = { ${modules} };
-    const cache = {};
+    const moduleCache = {};
     const _require = (moduleId) => {
-      const __require = (requireDeclarationName) => {
-        const localModule = map[requireDeclarationName];
-        return localModule ? _require(localModule) : require(requireDeclarationName);
-      };
-      const cacheModule = cache[moduleId];
-      if (cacheModule !== undefined) {
-        return cacheModule.exports;
+      const cachedModule = moduleCache[moduleId];
+      if (cachedModule !== void 0) {
+        return cachedModule.exports;
       }
-      cache[moduleId] = {
+      const { factory, map } = modules[moduleId];
+      const __require = (declarationName) =>
+        Boolean(map[declarationName]) ? _require(map[declarationName]) : require(declarationName);
+      const module = {
         exports: {},
       };
-      const module = cache[moduleId];
-      const { factory, map } = modules[moduleId];
+      moduleCache[moduleId] = module;
       factory.call(module.exports, module.exports, __require);
       return module.exports;
     };
@@ -179,7 +178,7 @@ const pack = (graphItems) => {
   return iifeBundler;
 };
 const main = async (entry, target) => {
-  if (target !== undefined) {
+  if (target !== void 0) {
     moduleTarget = target;
   }
   const analysisResult = await analysisDependency(entry);
