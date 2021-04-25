@@ -153,7 +153,7 @@ const pack = (graphItems) => {
           }
         `,
     )
-    .join();
+    .join(',');
   const iifeBundler = `(() => {
     const modules = { ${modules} };
     const moduleCache = {};

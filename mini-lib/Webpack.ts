@@ -181,7 +181,7 @@ const pack = (graphItems: GraphItem[]) => {
           }
         `,
     )
-    .join();
+    .join(',');
   const iifeBundler = `(() => {
     const modules = { ${modules} };
     const moduleCache = {};
