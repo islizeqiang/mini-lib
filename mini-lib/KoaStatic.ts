@@ -1,4 +1,4 @@
-import { resolve, parse, extname, basename } from 'path';
+import { resolve, parse, extname } from 'path';
 import { stat, createReadStream } from 'fs';
 import type { KoaContext } from './Koa';
 import type { Stats } from 'fs';
@@ -52,17 +52,17 @@ const send = async (
 
   response.setHeader('Content-length', stats.size);
 
-  if (!ctx.response.getHeader('Last-Modified')) {
+  if (typeof ctx.response.getHeader('Last-Modified') === 'undefined') {
     response.setHeader('Last-Modified', stats.mtime.toUTCString());
   }
-  if (!ctx.response.getHeader('Cache-Control')) {
+  if (typeof ctx.response.getHeader('Cache-Control') === 'undefined') {
     const directives = [`max-age=${Math.round(maxAge / 1000)}`];
     if (immutable) {
       directives.push('immutable');
     }
     response.setHeader('Cache-Control', directives.join(','));
   }
-  if (!ctx.response.getHeader('Content-Type')) {
+  if (typeof ctx.response.getHeader('Content-Type') === 'undefined') {
     response.setHeader('Content-Type', extname(requestPath));
   }
 
@@ -76,6 +76,7 @@ const serve = (root: string, options: Options) => {
   const opts: Options & ExpandOptions = Object.assign(Object.create(null), options);
   opts.root = resolve(root);
   opts.index = opts.index || 'index.html';
+  opts.defer = Boolean(opts.defer);
 
   if (!opts.defer) {
     return async (ctx: KoaContext, next: Function) => {

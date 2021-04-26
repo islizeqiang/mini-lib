@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs-extra';
+import fs from 'fs';
 import traverse from '@babel/traverse';
 import { parse as babelParse } from '@babel/parser';
 import { transformFromAst } from '@babel/core';
@@ -59,42 +59,48 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
           rej(error);
         }
         if (result) {
-          res(result.code || '');
+          res(typeof result.code === 'string' ? result.code : '');
         }
         res('');
       },
     );
   });
 
-const createModuleInfo = async (filePath: string, fileId?: string): Promise<ModuleInfo> => {
-  // 读取模块源代码
-  const content = await fs.readFile(filePath, 'utf-8');
-  // 对源代码进行 AST 产出
-  const AST = babelParse(content, {
-    sourceType: 'unambiguous',
-    allowImportExportEverywhere: true,
-    plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
-  });
-  // 相关模块依赖数组
-  const deps: string[] = [];
-  // 遍历模块 AST，将依赖推入 deps 数组中
-  traverse(AST, {
-    ImportDeclaration: ({ node }) => {
-      deps.push(node.source.value);
-    },
-  });
+const createModuleInfo = async (filePath: string, fileId?: string): Promise<ModuleInfo | null> => {
+  try {
+    // 读取模块源代码
+    const content = await fs.promises.readFile(filePath, 'utf-8');
+    // 对源代码进行 AST 产出
+    const AST = babelParse(content, {
+      sourceType: 'unambiguous',
+      allowImportExportEverywhere: true,
+      plugins: ['typescript', 'classProperties', 'jsx', 'dynamicImport'],
+    });
+    // 相关模块依赖数组
+    const deps: string[] = [];
+    // 遍历模块 AST，将依赖推入 deps 数组中
+    traverse(AST, {
+      ImportDeclaration: ({ node }) => {
+        deps.push(node.source.value);
+      },
+    });
 
-  const id = `'${fileId || path.basename(filePath)}'`;
+    const id = `'${typeof fileId === 'string' ? fileId : path.basename(filePath)}'`;
 
-  // 编译为 ES5
-  const code = await generateCode(AST, id);
+    // 编译为 ES5
+    const code = await generateCode(AST, id);
 
-  return {
-    id,
-    filePath,
-    deps,
-    code,
-  };
+    return {
+      id,
+      filePath,
+      deps,
+      code,
+    };
+  } catch (error) {
+    const msg = typeof error.stack === 'string' ? error.stack : error.toString();
+    console.log(`\n${msg.replace(/^/gm, '  ')}\n`);
+    return null;
+  }
 };
 
 const resolveFile = (name: string, basedir: string): Promise<string | undefined> =>
@@ -115,7 +121,7 @@ const flatDependencyGraph = async (
 ) => {
   const { deps, filePath } = graphItem;
 
-  if (deps && deps.length !== 0) {
+  if (deps.length !== 0) {
     // 循环对应模块的依赖项
     const getTask = async (dep: string) => {
       if (moduleTarget === 'node') {
@@ -125,7 +131,7 @@ const flatDependencyGraph = async (
       }
       const basedir = path.dirname(filePath);
       const file = await resolveFile(dep, basedir);
-      if (!file) throw new Error('No file');
+      if (typeof file === 'undefined') throw new Error('No file');
       // 进行格式化统一
       const depPath = file.split(path.sep).join('/');
       const existedDep = dependencyMap.get(depPath);
@@ -137,13 +143,15 @@ const flatDependencyGraph = async (
 
         const moduleInfo = await createModuleInfo(depPath, fileId);
 
-        const depGraphItem = {
-          ...moduleInfo,
-          map: {},
-        };
+        if (moduleInfo) {
+          const depGraphItem = {
+            ...moduleInfo,
+            map: {},
+          };
 
-        await flatDependencyGraph(depGraphItem, dependencyMap, graphItems);
-        graphItems.push(depGraphItem);
+          await flatDependencyGraph(depGraphItem, dependencyMap, graphItems);
+          graphItems.push(depGraphItem);
+        }
       } else {
         graphItem.map[dep] = existedDep;
       }
@@ -153,23 +161,26 @@ const flatDependencyGraph = async (
   }
 };
 
-const analysisDependency = async (entry: string) => {
-  const exist = await fs.stat(entry);
-  if (!exist) return null;
-  // 获取模块信息
-  const entryInfo = await createModuleInfo(entry);
-  // TODO 目前仅支持单入口
-  const rootGraphItem = {
-    ...entryInfo,
-    map: {},
-  };
-  const graphItems: GraphItem[] = [rootGraphItem];
-  const dependencyMap: DependencyMap = new Map();
-
-  await flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
-
-  return { dependencyMap, graphItems };
-};
+const analysisDependency = (entry: string) =>
+  new Promise<null | { dependencyMap: DependencyMap; graphItems: GraphItem[] }>((res) => {
+    fs.access(entry, async (error) => {
+      if (error !== null) {
+        res(null);
+      }
+      const entryInfo = await createModuleInfo(entry);
+      if (entryInfo) {
+        // TODO 目前仅支持单入口
+        const rootGraphItem = {
+          ...entryInfo,
+          map: {},
+        };
+        const graphItems: GraphItem[] = [rootGraphItem];
+        const dependencyMap: DependencyMap = new Map();
+        await flatDependencyGraph(rootGraphItem, dependencyMap, graphItems);
+        res({ dependencyMap, graphItems });
+      }
+    });
+  });
 
 const pack = (graphItems: GraphItem[]) => {
   const modules = graphItems
@@ -207,16 +218,21 @@ const pack = (graphItems: GraphItem[]) => {
 };
 
 const main = async (entry: string, target?: string) => {
-  if (target !== void 0) {
-    moduleTarget = target;
+  try {
+    if (target !== void 0) {
+      moduleTarget = target;
+    }
+    const analysisResult = await analysisDependency(entry);
+    if (analysisResult !== null) {
+      const { dependencyMap, graphItems } = analysisResult;
+      const data = pack(graphItems);
+      return { deps: [...dependencyMap.keys()], data };
+    }
+    return null;
+  } catch (error) {
+    console.log('error: ', error);
+    return null;
   }
-  const analysisResult = await analysisDependency(entry);
-  if (analysisResult !== null) {
-    const { dependencyMap, graphItems } = analysisResult;
-    const data = pack(graphItems);
-    return { deps: [...dependencyMap.keys()], data };
-  }
-  return null;
 };
 
 // void (async function test() {
@@ -225,7 +241,7 @@ const main = async (entry: string, target?: string) => {
 //   const output = path.join(entryDir, `app.out.js`);
 
 //   const { graphItems } = await analysisDependency(entry);
-//   fs.outputFile(output, pack(graphItems));
+//   fs.writeFileSync(output, pack(graphItems));
 // })();
 
 export default main;

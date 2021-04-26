@@ -44,6 +44,6 @@
   },
   "config": {
     "develop_scripts": "scripts/develop",
-    "entry": "koa-example"
+    "entry": "react-fiber"
   }
 }

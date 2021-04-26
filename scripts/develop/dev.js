@@ -57,7 +57,7 @@ const compileScript = async (options) => {
   if (result !== null) {
     const { deps, data } = result;
     watchFile([...deps, entry], callback);
-    if (outputFile) {
+    if (outputFile !== void 0) {
       await output(outputFile, data);
     }
     return data;
@@ -126,7 +126,7 @@ const compile = async (compileFunctions) => {
       ),
     );
   } catch (error) {
-    const msg = error.stack || error.toString();
+    const msg = typeof error.stack === 'string' ? error.stack : error.toString();
     console.log(chalk_1.default.red(`\n${msg.replace(/^/gm, '  ')}\n`));
   }
 };
@@ -135,7 +135,7 @@ const debounceCompile = ((func, ms) => {
   const callbackStack = new Set();
   return function (callback) {
     callbackStack.add(callback);
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId !== void 0) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       func.call(this, [...callbackStack]);
       callbackStack.clear();
