@@ -70,7 +70,7 @@ interface FiberNode {
   child?: FiberNode;
 }
 
-let workInProgressRoot: FiberNode | null = null;
+let wipRoot: FiberNode | null = null;
 let nextUnitOfWork: FiberNode | null = null;
 let currentRoot: FiberNode | null = null;
 let deletions: FiberNode[] = [];
@@ -112,7 +112,7 @@ const updateDOM = (DOM: Node, prevProps: VirtualElementProps, nextProps: Virtual
   );
 
   for (const removePropKey of removePropKeys) {
-    if (removePropKey.indexOf('on') === 0) {
+    if (removePropKey.startsWith('on')) {
       const listener = prevProps[removePropKey] as EventListener;
       DOM.removeEventListener(removePropKey.substr(2).toLowerCase(), listener, false);
     } else {
@@ -122,7 +122,7 @@ const updateDOM = (DOM: Node, prevProps: VirtualElementProps, nextProps: Virtual
 
   const addPropKeys = nextPropKeys.filter((key) => !defaultPropKeys.includes(key));
   for (const addPropKey of addPropKeys) {
-    if (addPropKey.indexOf('on') === 0) {
+    if (addPropKey.startsWith('on')) {
       const listener = nextProps[addPropKey] as EventListener;
       DOM.addEventListener(addPropKey.substr(2).toLowerCase(), listener, false);
     } else {
@@ -136,7 +136,7 @@ const createDOM = (fiberNode: FiberNode): Node | null => {
   let DOM: Node | null = null;
 
   if (type === 'TEXT') {
-    DOM = document.createTextNode(props.nodeValue as string);
+    DOM = document.createTextNode('');
   } else if (typeof type === 'string') {
     DOM = document.createElement(type);
   }
@@ -148,7 +148,7 @@ const createDOM = (fiberNode: FiberNode): Node | null => {
   return DOM;
 };
 
-const commit = () => {
+const commitRoot = () => {
   const findParentFiber = (fiberNode?: FiberNode) => {
     if (fiberNode) {
       let parentFiber = fiberNode.return;
@@ -168,7 +168,7 @@ const commit = () => {
     }
   };
 
-  const commitImplement = (fiberNode?: FiberNode) => {
+  const commitWork = (fiberNode?: FiberNode) => {
     if (fiberNode) {
       const parentFiber = findParentFiber(fiberNode);
 
@@ -196,8 +196,8 @@ const commit = () => {
           break;
       }
 
-      commitImplement(fiberNode.child);
-      commitImplement(fiberNode.sibling);
+      commitWork(fiberNode.child);
+      commitWork(fiberNode.sibling);
     }
   };
 
@@ -208,36 +208,36 @@ const commit = () => {
     }
   }
 
-  if (workInProgressRoot !== null) {
-    commitImplement(workInProgressRoot.child);
+  if (wipRoot !== null) {
+    commitWork(wipRoot.child);
 
-    currentRoot = workInProgressRoot;
+    currentRoot = wipRoot;
   }
 
-  workInProgressRoot = null;
+  wipRoot = null;
 };
 
 const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []) => {
   let index = 0;
-  let oldNode: FiberNode | undefined = void 0;
+  let oldFiberNode: FiberNode | undefined = void 0;
   let prevSibling: FiberNode | undefined = void 0;
 
   if (fiberNode.alternate && fiberNode.alternate.child) {
-    oldNode = fiberNode.alternate.child;
+    oldFiberNode = fiberNode.alternate.child;
   }
 
-  while (index < elements.length || typeof oldNode !== 'undefined') {
+  while (index < elements.length || typeof oldFiberNode !== 'undefined') {
     const element: VirtualElement | undefined = elements[index];
     let newFiber: FiberNode | undefined = void 0;
 
-    const isSameType = Boolean(oldNode && element && oldNode.type === element.type);
+    const isSameType = Boolean(oldFiberNode && element && oldFiberNode.type === element.type);
 
     // 类型相同 更新props
-    if (isSameType && oldNode) {
+    if (isSameType && oldFiberNode) {
       newFiber = {
-        type: oldNode.type,
-        dom: oldNode.dom,
-        alternate: oldNode,
+        type: oldFiberNode.type,
+        dom: oldFiberNode.dom,
+        alternate: oldFiberNode,
         props: element.props,
         return: fiberNode,
         effectTag: 'UPDATE',
@@ -255,13 +255,13 @@ const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []
       };
     }
     // 类型不同 但存在老元素
-    if (!isSameType && oldNode) {
-      oldNode.effectTag = 'DELETION';
-      deletions.push(oldNode);
+    if (!isSameType && oldFiberNode) {
+      oldFiberNode.effectTag = 'DELETION';
+      deletions.push(oldFiberNode);
     }
 
-    if (oldNode) {
-      oldNode = oldNode.sibling;
+    if (oldFiberNode) {
+      oldFiberNode = oldFiberNode.sibling;
     }
 
     if (index === 0) {
@@ -327,15 +327,15 @@ const workLoop: IdleCallback = (deadline) => {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
   }
 
-  if (!nextUnitOfWork && workInProgressRoot) {
-    commit();
+  if (!nextUnitOfWork && wipRoot) {
+    commitRoot();
   }
 
   window.requestIdleCallback(workLoop);
 };
 
 const render = (element: VirtualElement, container: Node) => {
-  workInProgressRoot = {
+  wipRoot = {
     type: 'div',
     dom: container,
     props: {
@@ -343,7 +343,7 @@ const render = (element: VirtualElement, container: Node) => {
     },
     alternate: currentRoot,
   };
-  nextUnitOfWork = workInProgressRoot;
+  nextUnitOfWork = wipRoot;
   deletions = [];
 };
 
@@ -387,13 +387,13 @@ function useState(initState: unknown): [unknown, (value: unknown) => void] {
   const setState = (value: unknown) => {
     hook.queue.push(value);
     if (currentRoot) {
-      workInProgressRoot = {
+      wipRoot = {
         type: currentRoot.type,
         dom: currentRoot.dom,
         props: currentRoot.props,
         alternate: currentRoot,
       };
-      nextUnitOfWork = workInProgressRoot;
+      nextUnitOfWork = wipRoot;
       deletions = [];
       currentRoot = null;
     }
