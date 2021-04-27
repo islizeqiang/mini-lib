@@ -55,20 +55,7 @@ function Count1() {
   );
 }
 
-const Count3 = () => {
-  const [count, setCount] = React.useState(1);
-  const onClickHandler = () => {
-    setCount(count + 1);
-  };
-  return (
-    <div>
-      <h3>Count: {count}</h3>
-      <button onClick={onClickHandler}>Count+1</button>
-    </div>
-  );
-};
-
-class AppImplements extends React.Component {
+class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -99,7 +86,5 @@ class AppImplements extends React.Component {
     );
   }
 }
-
-const App = React.transfer(AppImplements);
 
 React.render(<App title="测试" />, document.getElementById('root'));

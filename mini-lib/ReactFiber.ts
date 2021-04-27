@@ -43,7 +43,7 @@ interface FiberNode {
 
 let workInProgressRoot: FiberNode | null = null;
 let nextUnitOfWork: FiberNode | null = null;
-let currentRoot: FiberNode;
+let currentRoot: FiberNode | null = null;
 let deletions: FiberNode[] = [];
 
 let wipFiber: FiberNode;
@@ -247,35 +247,48 @@ const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []
 };
 
 const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
-  if (typeof fiberNode.type === 'function') {
-    // 函数组件
-    wipFiber = fiberNode;
-    wipFiber.hooks = [];
-    hookIndex = 0;
-
-    reconcileChildren(fiberNode, [fiberNode.type(fiberNode.props)]);
-  } else {
-    // class组件
-    if (!fiberNode.dom) {
-      fiberNode.dom = createDOM(fiberNode);
-    }
-    if (typeof fiberNode.props === 'undefined') {
-      fiberNode.props = {
-        children: [],
-      };
-    }
-    reconcileChildren(fiberNode, fiberNode.props.children);
+  const { type } = fiberNode;
+  switch (typeof type) {
+    case 'function':
+      wipFiber = fiberNode;
+      wipFiber.hooks = [];
+      hookIndex = 0;
+      if (typeof Object.getPrototypeOf(type).REACT_COMPONENT !== 'undefined') {
+        const C = (type as unknown) as typeof Component;
+        const component = new C(fiberNode.props);
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const [state, setState] = useState(component.state);
+        component.props = fiberNode.props;
+        component.state = state;
+        component.setState = setState;
+        reconcileChildren(fiberNode, [component.render()]);
+      } else {
+        reconcileChildren(fiberNode, [type(fiberNode.props)]);
+      }
+      break;
+    case 'number':
+    case 'string':
+      if (!fiberNode.dom) {
+        fiberNode.dom = createDOM(fiberNode);
+      }
+      reconcileChildren(fiberNode, fiberNode.props.children);
+      break;
+    default:
+      if (typeof fiberNode.props !== 'undefined') {
+        reconcileChildren(fiberNode, fiberNode.props.children);
+      }
+      break;
   }
 
   if (fiberNode.child) {
     return fiberNode.child;
   }
-  let nextFiberNode: FiberNode | null = fiberNode;
-  while (nextFiberNode !== null) {
+  let nextFiberNode: FiberNode | undefined = fiberNode;
+  while (typeof nextFiberNode !== 'undefined') {
     if (nextFiberNode.sibling) {
       return nextFiberNode.sibling;
     }
-    nextFiberNode = typeof nextFiberNode.return === 'undefined' ? null : nextFiberNode.return;
+    nextFiberNode = nextFiberNode.return;
   }
   return null;
 };
@@ -293,20 +306,32 @@ const workLoop: IdleCallback = (deadline) => {
 };
 
 const render = (element: VirtualElement, container: Node) => {
-  const fiberNode = {
+  workInProgressRoot = {
+    type: 'div',
     dom: container,
     props: {
-      children: [element],
+      children: [{ ...element }],
     },
     alternate: currentRoot,
   };
-
-  workInProgressRoot = fiberNode;
-  nextUnitOfWork = fiberNode;
+  nextUnitOfWork = workInProgressRoot;
   deletions = [];
 };
 
-const useState = (initState: unknown): [unknown, (value: unknown) => void] => {
+class Component {
+  props: Dict<unknown>;
+  state!: unknown;
+  setState!: (value: unknown) => void;
+  render!: () => VirtualElement;
+
+  constructor(props: Dict<unknown>) {
+    this.props = props;
+  }
+
+  static REACT_COMPONENT = true;
+}
+
+function useState(initState: unknown): [unknown, (value: unknown) => void] {
   let oldHook: undefined | HookContent;
 
   if (wipFiber.alternate && wipFiber.alternate.hooks) {
@@ -332,38 +357,21 @@ const useState = (initState: unknown): [unknown, (value: unknown) => void] => {
 
   const setState = (value: unknown) => {
     hook.queue.push(value);
-
-    workInProgressRoot = {
-      dom: currentRoot.dom,
-      props: currentRoot.props,
-      alternate: currentRoot,
-    };
-    nextUnitOfWork = workInProgressRoot;
-    deletions = [];
+    if (currentRoot) {
+      workInProgressRoot = {
+        type: currentRoot.type,
+        dom: currentRoot.dom,
+        props: currentRoot.props,
+        alternate: currentRoot,
+      };
+      nextUnitOfWork = workInProgressRoot;
+      deletions = [];
+      currentRoot = null;
+    }
   };
 
   return [hook.state, setState];
-};
-
-class Component {
-  props: Dict<unknown>;
-  state!: unknown;
-  setState!: (value: unknown) => void;
-  render!: () => VirtualElement;
-
-  constructor(props: Dict<unknown>) {
-    this.props = props;
-  }
 }
-
-const transfer = (C: typeof Component): VirtualElementType => (props) => {
-  const component = new C(props);
-  const [state, setState] = useState(component.state);
-  component.props = props;
-  component.state = state;
-  component.setState = setState;
-  return component.render();
-};
 
 void (function main() {
   window.requestIdleCallback(workLoop);
@@ -374,5 +382,4 @@ export default {
   render,
   useState,
   Component,
-  transfer,
 };
