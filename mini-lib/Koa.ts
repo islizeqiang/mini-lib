@@ -95,7 +95,7 @@ class Koa extends EventEmitter {
         return response.end(JSON.stringify(body));
       })
       .catch((error) => {
-        const msg = error.stack || error.toString();
+        const msg = typeof error.stack !== 'undefined' ? error.stack : error.toString();
         console.error(`\n${msg.replace(/^/gm, '  ')}\n`);
         ctx.response.statusCode = 404;
         ctx.response.end('Not Found');

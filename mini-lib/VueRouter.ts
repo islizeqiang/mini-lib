@@ -12,11 +12,11 @@ class VueRouter {
   routesMap: any;
 
   constructor(options: any) {
-    this.mode = options.mode || 'hash';
+    this.mode = typeof options.mode === 'undefined' ? 'hash' : options.mode;
     this.history = new History();
     this.routesMap = options.routes.reduce((acc: any, cur: any) => {
       const { path, component } = cur;
-      if (component) {
+      if (typeof component !== 'undefined') {
         acc[path] = component;
       }
       return acc;
@@ -33,7 +33,7 @@ class VueRouter {
 
     vue.mixin({
       beforeCreate() {
-        if (this.$options && this.$options.router) {
+        if (typeof this.$options !== 'undefined' && typeof this.$options.router !== 'undefined') {
           this._routerRoot = this;
           this._router = this.$options.router;
           vue.util.defineReactive(this, 'current', this._router.history);

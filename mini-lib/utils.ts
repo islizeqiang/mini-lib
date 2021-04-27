@@ -4,14 +4,15 @@ import type { Readable, PassThrough } from 'stream';
 export const debounce = <T extends Function, V extends unknown[]>(func: T, ms: number) => {
   let timeoutId: NodeJS.Timeout;
   return function (this: T, ...args: V) {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (typeof timeoutId !== 'undefined') clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func.apply(this, args), ms);
   };
 };
 
 export const isWebSocket = (request: http.IncomingMessage) => {
-  const connection = request.headers.connection || '';
-  const upgrade = request.headers.upgrade || '';
+  const { headers } = request;
+  const connection = typeof headers.connection !== 'undefined' ? headers.connection : '';
+  const upgrade = typeof headers.upgrade !== 'undefined' ? headers.upgrade : '';
 
   return (
     request.method === 'GET' &&

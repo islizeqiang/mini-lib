@@ -6,7 +6,9 @@ interface Config {
   methods?: Record<string, VoidFunction>;
 }
 
-const effects = new Map();
+type TargetMap = Map<unknown, Function[]>;
+
+const effects = new Map<unknown, TargetMap>();
 
 let currentEffect: null | VoidFunction = null;
 
@@ -25,13 +27,15 @@ const reactive = (data: Dict<unknown>) => {
       // 如果有currentEffect
       if (currentEffect) {
         if (!effects.has(target)) {
-          effects.set(target, new Map());
+          effects.set(target, new Map<unknown, Function[]>());
         }
-        if (!effects.get(target).has(property)) {
-          effects.get(target).set(property, new Array());
+        const targetMap = effects.get(target) as TargetMap;
+        if (!targetMap.has(property)) {
+          targetMap.set(property, new Array());
         }
+        const propertys = targetMap.get(property) as Function[];
         // 将回调存起来
-        effects.get(target).get(property).push(currentEffect);
+        propertys.push(currentEffect);
       }
 
       return target[property as string];
@@ -40,10 +44,15 @@ const reactive = (data: Dict<unknown>) => {
     set(target, property, value) {
       target[property as string] = value;
       // 如果之前已经存储过 并且拥有过这个属性 则进行响应式
-      if (effects.has(target) && effects.get(target).has(property)) {
-        for (const effect of effects.get(target).get(property)) {
-          // 执行每一个回调
-          effect();
+      if (effects.has(target)) {
+        const targetMap = effects.get(target);
+        if (typeof targetMap !== 'undefined') {
+          if (targetMap.has(property)) {
+            for (const effect of targetMap.get(property) as Function[]) {
+              // 执行每一个回调
+              effect();
+            }
+          }
         }
       }
       return true;
@@ -82,7 +91,7 @@ class Vue {
   traversal(node: Element | ChildNode | null) {
     if (node !== null) {
       if (isTextNode(node)) {
-        if (node.textContent && node.textContent.trim().match(/^{{([\s\S]+)}}$/)) {
+        if (node.textContent !== null && node.textContent.trim().match(/^{{([\s\S]+)}}$/)) {
           const name = RegExp.$1.trim();
           applyEffect(() => {
             node.textContent = String(this.data[name]);

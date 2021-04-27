@@ -65,7 +65,7 @@ class Component {
   _vdom!: ReactNode;
 
   constructor(type?: string) {
-    this.type = type || '';
+    this.type = typeof type === 'undefined' ? '' : type;
     this.props = Object.create(null);
     this.children = [];
     this._root = null;
@@ -141,7 +141,7 @@ class Component {
         const newChildren = newNode.vchildren;
         const oldChildren = oldNode.vchildren;
 
-        if (!newChildren || !newChildren.length) {
+        if (!newChildren.length) {
           return;
         }
 
@@ -174,7 +174,7 @@ class Component {
 class ElementWrapper extends Component {
   type: string;
 
-  vchildren!: ReactNode[];
+  vchildren: ReactNode[] = [];
 
   constructor(type: string) {
     super(type);
@@ -203,7 +203,7 @@ class ElementWrapper extends Component {
       }
     }
 
-    if (!this.vchildren) {
+    if (!this.vchildren.length) {
       this.vchildren = this.children.map((child) => child.vdom);
     }
 

@@ -35,7 +35,7 @@ export class Router extends React.Component {
 
   componentDidMount() {
     this._isMounted = true;
-    if (this._pendingLocation) {
+    if (this._pendingLocation !== null) {
       this.setState({
         location: this._pendingLocation,
       });
@@ -43,7 +43,7 @@ export class Router extends React.Component {
   }
 
   componentWillUnmount() {
-    if (this.unlisten) {
+    if (typeof this.unlisten === 'function') {
       this.unlisten();
       this._isMounted = false;
       this._pendingLocation = null;
@@ -62,7 +62,7 @@ export class Router extends React.Component {
           match: Router.computeRootMatch(location.pathname),
         }}
       >
-        <HistoryContext.Provider children={children || null} value={history} />
+        <HistoryContext.Provider children={children} value={history} />
       </RouterContext.Provider>
     );
   }
@@ -76,14 +76,16 @@ export const Switch = ({ children }) => (
       let match;
 
       React.Children.forEach(children, (child) => {
-        if (!match && React.isValidElement(child)) {
+        if (typeof match === 'undefined' && React.isValidElement(child)) {
           element = child;
           const { path } = element.props;
           match = matchPath(location.pathname, { ...child.props, path });
         }
       });
 
-      return match ? React.cloneElement(element, { location, computedMatch: match }) : null;
+      return typeof match !== 'undefined'
+        ? React.cloneElement(element, { location, computedMatch: match })
+        : null;
     }}
   </RouterContext.Consumer>
 );
@@ -93,11 +95,12 @@ export const Route = (props) => (
     {(context) => {
       const { computedMatch, component } = props;
       const { location } = context;
-      const match = computedMatch || matchPath(location.pathname, props);
+      const match =
+        typeof computedMatch !== 'undefined' ? computedMatch : matchPath(location.pathname, props);
       const value = { ...context, location, match };
       return (
         <RouterContext.Provider value={value}>
-          {value.match ? React.createElement(component, value) : null}
+          {typeof value.match !== 'undefined' ? React.createElement(component, value) : null}
         </RouterContext.Provider>
       );
     }}
