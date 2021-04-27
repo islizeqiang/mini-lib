@@ -14,6 +14,35 @@ declare global {
   }
 }
 
+void ((global: Window) => {
+  const id = 1;
+  const fps = Number((1000 / 60).toFixed(2));
+  let frameDeadline: number;
+  let penddingCallback: IdleCallback;
+  const channel = new MessageChannel();
+  const timeRemaining = () => frameDeadline - window.performance.now();
+  const deadline = {
+    didTimeout: false,
+    timeRemaining,
+  };
+
+  channel.port2.onmessage = () => {
+    if (typeof penddingCallback !== 'undefined') {
+      penddingCallback(deadline);
+    }
+  };
+
+  global.requestIdleCallback = (callback: IdleCallback) => {
+    global.requestAnimationFrame((rafTime) => {
+      frameDeadline = rafTime + fps;
+      penddingCallback = callback;
+      channel.port1.postMessage(null);
+    });
+
+    return id;
+  };
+})(window);
+
 type Dict<T> = Record<string, T>;
 interface HookContent {
   state: unknown;
@@ -294,7 +323,7 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
 };
 
 const workLoop: IdleCallback = (deadline) => {
-  while (nextUnitOfWork && deadline.timeRemaining() > 1) {
+  while (nextUnitOfWork && deadline.timeRemaining() > 5) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
   }
 

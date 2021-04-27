@@ -10,10 +10,7 @@
       "name": "Launch Chrome against localhost",
       "url": "http://localhost:7000",
       "webRoot": "${workspaceFolder}",
-      "breakOnLoad": true,
-      "sourceMapPathOverrides": {
-        "../*": "${webRoot}/*"
-      }
+      "breakOnLoad": true
     }
   ]
 }

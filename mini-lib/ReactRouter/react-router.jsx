@@ -73,17 +73,17 @@ export const Switch = ({ children }) => (
     {(context) => {
       const { location } = context;
       let element;
-      let match;
+      let match = null;
 
       React.Children.forEach(children, (child) => {
-        if (typeof match === 'undefined' && React.isValidElement(child)) {
+        if (match === null && React.isValidElement(child)) {
           element = child;
           const { path } = element.props;
           match = matchPath(location.pathname, { ...child.props, path });
         }
       });
 
-      return typeof match !== 'undefined'
+      return match !== null
         ? React.cloneElement(element, { location, computedMatch: match })
         : null;
     }}
@@ -95,12 +95,11 @@ export const Route = (props) => (
     {(context) => {
       const { computedMatch, component } = props;
       const { location } = context;
-      const match =
-        typeof computedMatch !== 'undefined' ? computedMatch : matchPath(location.pathname, props);
+      const match = computedMatch !== null ? computedMatch : matchPath(location.pathname, props);
       const value = { ...context, location, match };
       return (
         <RouterContext.Provider value={value}>
-          {typeof value.match !== 'undefined' ? React.createElement(component, value) : null}
+          {value.match !== null ? React.createElement(component, value) : null}
         </RouterContext.Provider>
       );
     }}
