@@ -203,7 +203,6 @@ const main = async (entry, target) => {
     }
     return null;
   } catch (error) {
-    console.log('error: ', error);
     return null;
   }
 };

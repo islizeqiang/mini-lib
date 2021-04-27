@@ -4,14 +4,15 @@ exports.concatStreams = exports.isWebSocket = exports.debounce = void 0;
 const debounce = (func, ms) => {
   let timeoutId;
   return function (...args) {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (typeof timeoutId !== 'undefined') clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func.apply(this, args), ms);
   };
 };
 exports.debounce = debounce;
 const isWebSocket = (request) => {
-  const connection = request.headers.connection || '';
-  const upgrade = request.headers.upgrade || '';
+  const { headers } = request;
+  const connection = typeof headers.connection !== 'undefined' ? headers.connection : '';
+  const upgrade = typeof headers.upgrade !== 'undefined' ? headers.upgrade : '';
   return (
     request.method === 'GET' &&
     connection.toLowerCase().split(/ *, */).indexOf('upgrade') >= 0 &&
