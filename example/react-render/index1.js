@@ -1,4 +1,4 @@
-import React from '../../mini-lib/ReactFiber';
+import React from '../../mini-lib/React/ReactFiber';
 
 function Count2(props) {
   const [count, setCount] = React.useState(1);

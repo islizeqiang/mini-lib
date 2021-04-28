@@ -13,33 +13,6 @@ interface Attributes extends Dict<unknown> {
 
 type ReactNode = ElementWrapper | TextWrapper;
 
-const deepClone = (obj: Dict<unknown>, hash = new WeakMap()) => {
-  // 如果是Date 特殊处理
-  if (obj instanceof Date) return new Date(obj);
-  // 如果是RegExp 特殊处理
-  if (obj instanceof RegExp) return new RegExp(obj);
-  // 如果hash中含有 则直接返回
-  if (hash.has(obj)) return hash.get(obj);
-  // 获取所有的key value
-  const allDesc = Object.getOwnPropertyDescriptors(obj);
-  // 仅浅复制了一份
-  const cloneObj = Object.create(Object.getPrototypeOf(obj), allDesc);
-  // 存到hash中一份 解决循环引用问题
-  hash.set(obj, cloneObj);
-  // 深克隆一份
-  for (const key of Reflect.ownKeys(obj)) {
-    const value = obj[key as string];
-    if (value instanceof Object) {
-      // 仅处理Object类型
-      cloneObj[key] = deepClone(value as Dict<unknown>, hash);
-    } else {
-      cloneObj[key] = value;
-    }
-  }
-
-  return cloneObj;
-};
-
 const replaceContent = (range: Range, node: Node) => {
   range.insertNode(node);
   range.setStartAfter(node);
@@ -93,11 +66,10 @@ class Component {
   setState(newState: Dict<unknown>) {
     if (this.state === null || typeof this.state !== 'object') {
       this.state = newState;
-      // this.rerender();
       return;
     }
 
-    this.state = { ...this.state, ...deepClone(newState) };
+    this.state = { ...this.state, ...newState };
 
     this.update();
   }
@@ -105,6 +77,10 @@ class Component {
   update() {
     const isSameNode = (oldNode: ReactNode, newNode: ReactNode) => {
       if (oldNode.type !== newNode.type) {
+        return false;
+      }
+
+      if (newNode.children.length !== oldNode.children.length) {
         return false;
       }
 
@@ -145,7 +121,7 @@ class Component {
           return;
         }
 
-        let tailRange = oldChildren[oldChildren.length - 1]._range;
+        const tailRange = oldChildren[oldChildren.length - 1]._range;
 
         for (let i = 0; i < newChildren.length; i += 1) {
           const newChild = newChildren[i];
@@ -153,12 +129,13 @@ class Component {
 
           if (i < oldChildren.length) {
             update(oldChild, newChild);
-          } else if (tailRange !== null) {
+          } else if (tailRange) {
+            // 新增
             const range = document.createRange();
             range.setStart(tailRange.endContainer, tailRange.endOffset);
             range.setEnd(tailRange.endContainer, tailRange.endOffset);
             newChild[RENDER_TO_DOM](range);
-            tailRange = range;
+            // tailRange = range;
             // TODO
           }
         }
@@ -182,13 +159,14 @@ class ElementWrapper extends Component {
   }
 
   get vdom() {
-    this.vchildren = this.children.map((child) => child.vdom);
+    if (!this.vchildren.length) {
+      this.vchildren = this.children.map((child) => child.vdom);
+    }
     return this;
   }
 
   [RENDER_TO_DOM](range: Range) {
     this._range = range;
-
     const root = document.createElement(this.type);
 
     for (const name in this.props) {

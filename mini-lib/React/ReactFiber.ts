@@ -78,6 +78,9 @@ let deletions: FiberNode[] = [];
 let wipFiber: FiberNode;
 let hookIndex: number = 0;
 
+const isObject = (obj: unknown): obj is Object =>
+  obj instanceof Object && obj.constructor === Object;
+
 const createTextElement = (text: string): VirtualElement => ({
   type: 'TEXT',
   props: {
@@ -221,16 +224,19 @@ const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []
   let index = 0;
   let oldFiberNode: FiberNode | undefined = void 0;
   let prevSibling: FiberNode | undefined = void 0;
+  const virtualElements = elements.flat(Infinity);
 
   if (fiberNode.alternate && fiberNode.alternate.child) {
     oldFiberNode = fiberNode.alternate.child;
   }
 
-  while (index < elements.length || typeof oldFiberNode !== 'undefined') {
-    const element: VirtualElement | undefined = elements[index];
+  while (index < virtualElements.length || typeof oldFiberNode !== 'undefined') {
+    const virtualElement = virtualElements[index];
     let newFiber: FiberNode | undefined = void 0;
 
-    const isSameType = Boolean(oldFiberNode && element && oldFiberNode.type === element.type);
+    const isSameType = Boolean(
+      oldFiberNode && virtualElement && oldFiberNode.type === virtualElement.type,
+    );
 
     // 类型相同 更新props
     if (isSameType && oldFiberNode) {
@@ -238,18 +244,18 @@ const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []
         type: oldFiberNode.type,
         dom: oldFiberNode.dom,
         alternate: oldFiberNode,
-        props: element.props,
+        props: virtualElement.props,
         return: fiberNode,
         effectTag: 'UPDATE',
       };
     }
     // 类型不同 但存在新元素
-    if (!isSameType && typeof element !== 'undefined') {
+    if (!isSameType && Boolean(virtualElement)) {
       newFiber = {
-        type: element.type,
+        type: virtualElement.type,
         dom: null,
         alternate: null,
-        props: element.props,
+        props: virtualElement.props,
         return: fiberNode,
         effectTag: 'REPLACEMENT',
       };
@@ -290,7 +296,8 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
         component.props = fiberNode.props;
         component.state = state;
         component.setState = setState;
-        reconcileChildren(fiberNode, [component.render()]);
+        const children = component.render();
+        reconcileChildren(fiberNode, [children]);
       } else {
         reconcileChildren(fiberNode, [type(fiberNode.props)]);
       }
@@ -373,7 +380,11 @@ function useState(initState: unknown): [unknown, (value: unknown) => void] {
   };
 
   for (const action of oldHook ? oldHook.queue : []) {
-    hook.state = action;
+    let newState = action;
+    if (isObject(hook.state) && isObject(action)) {
+      newState = { ...hook.state, ...action };
+    }
+    hook.state = newState;
   }
 
   if (typeof wipFiber.hooks === 'undefined') {

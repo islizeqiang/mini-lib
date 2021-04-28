@@ -1,4 +1,5 @@
-import React from '../../mini-lib/React';
+// import React from '../../mini-lib/React/ReactRange';
+import React from '../../mini-lib/React/ReactFiber';
 
 function calculateWinner(squares) {
   const lines = [
