@@ -17,6 +17,66 @@ const Admin = () => {
   );
 };
 
+class Home2 extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      time: 1,
+    };
+  }
+  setTime = (e) => {
+    this.setState({
+      time: e,
+    });
+  };
+
+  set = () => {
+    this.setTime(2);
+    this.setTime(3);
+
+    setTimeout(() => {
+      console.log('time-timeout-1次: ', this.state.time);
+      this.setTime(4);
+      console.log('time-timeout-2次: ', this.state.time);
+    });
+  };
+
+  render() {
+    console.log('time-render: ', this.state.time);
+
+    return (
+      <>
+        <button onClick={this.set}>点我</button>
+        <div>{this.state.time}</div>
+      </>
+    );
+  }
+}
+
+const Home1 = () => {
+  const [time, setTime] = React.useState(1);
+
+  const set = () => {
+    setTime(2);
+    setTime(3);
+
+    setTimeout(() => {
+      console.log('time-timeout-1次: ', time);
+      setTime(4);
+      console.log('time-timeout-2次: ', time);
+    });
+  };
+
+  console.log('time-render: ', time);
+
+  return (
+    <>
+      <button onClick={set}>点我</button>
+      <div>{time}</div>
+    </>
+  );
+};
+
 const Home = () => {
   return (
     <>

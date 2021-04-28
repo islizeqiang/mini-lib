@@ -106,30 +106,24 @@ const createElement = (
 };
 
 const updateDOM = (DOM: Node, prevProps: VirtualElementProps, nextProps: VirtualElementProps) => {
-  const prevPropKeys = Object.keys(prevProps);
-  const nextPropKeys = Object.keys(nextProps);
-  const defaultPropKeys = ['children'];
+  const defaultPropKeys = 'children';
 
-  const removePropKeys = prevPropKeys.filter(
-    (key) => ![...nextPropKeys, ...defaultPropKeys].includes(key),
-  );
-
-  for (const removePropKey of removePropKeys) {
+  for (const [removePropKey, removePropValue] of Object.entries(prevProps)) {
     if (removePropKey.startsWith('on')) {
-      const listener = prevProps[removePropKey] as EventListener;
-      DOM.removeEventListener(removePropKey.substr(2).toLowerCase(), listener, false);
-    } else {
+      DOM.removeEventListener(
+        removePropKey.substr(2).toLowerCase(),
+        removePropValue as EventListener,
+      );
+    } else if (removePropKey !== defaultPropKeys) {
       DOM[removePropKey] = '';
     }
   }
 
-  const addPropKeys = nextPropKeys.filter((key) => !defaultPropKeys.includes(key));
-  for (const addPropKey of addPropKeys) {
+  for (const [addPropKey, addPropValue] of Object.entries(nextProps)) {
     if (addPropKey.startsWith('on')) {
-      const listener = nextProps[addPropKey] as EventListener;
-      DOM.addEventListener(addPropKey.substr(2).toLowerCase(), listener, false);
-    } else {
-      DOM[addPropKey] = nextProps[addPropKey];
+      DOM.addEventListener(addPropKey.substr(2).toLowerCase(), addPropValue as EventListener);
+    } else if (addPropKey !== defaultPropKeys) {
+      DOM[addPropKey] = addPropValue;
     }
   }
 };
@@ -376,13 +370,14 @@ function useState(initState: unknown): [unknown, (value: unknown) => void] {
 
   const hook: HookContent = {
     state: oldHook ? oldHook.state : initState,
-    queue: [],
+    queue: oldHook ? oldHook.queue : [],
   };
 
-  for (const action of oldHook ? oldHook.queue : []) {
-    let newState = action;
-    if (isObject(hook.state) && isObject(action)) {
-      newState = { ...hook.state, ...action };
+  const queueLength = hook.queue.length;
+  for (const _ of [...Array(queueLength)]) {
+    let newState = hook.queue.shift();
+    if (isObject(hook.state) && isObject(newState)) {
+      newState = { ...hook.state, ...newState };
     }
     hook.state = newState;
   }
