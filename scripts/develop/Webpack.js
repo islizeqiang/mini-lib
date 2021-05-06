@@ -23,7 +23,9 @@ const generateCode = (ast, filename) =>
       void 0,
       {
         ast: true,
-        comments: false,
+        // comments: false,
+        // TODO 支持sourcemap
+        // sourceMaps: 'inline',
         filename,
         presets: [
           [
@@ -77,7 +79,6 @@ const createModuleInfo = async (filePath, fileId) => {
       },
     });
     const id = `'${typeof fileId === 'string' ? fileId : path_1.default.basename(filePath)}'`;
-    // 编译为 ES5
     const code = await generateCode(AST, id);
     return {
       id,
@@ -161,7 +162,7 @@ const pack = (graphItems) => {
   const modules = graphItems
     .map(
       (graphItem) => `${graphItem.id}: {
-            factory: function (exports, require) { ${graphItem.code} },
+            factory: function (exports, require) { ${graphItem.code}\r\n },
             map: ${JSON.stringify(graphItem.map)},
           }
         `,
@@ -210,7 +211,9 @@ const main = async (entry, target) => {
 //   const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
 //   const entry = path.join(entryDir, 'app.js');
 //   const output = path.join(entryDir, `app.out.js`);
-//   const { graphItems } = await analysisDependency(entry);
-//   fs.writeFileSync(output, pack(graphItems));
+//   const analysisResult = await analysisDependency(entry);
+//   if (analysisResult) {
+//     fs.writeFileSync(output, pack(analysisResult.graphItems));
+//   }
 // })();
 exports.default = main;

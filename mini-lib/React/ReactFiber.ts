@@ -368,9 +368,9 @@ function useState(initState: unknown): [unknown, (value: unknown) => void] {
     oldHook = wipFiber.alternate.hooks[hookIndex];
   }
 
-  const hook: HookContent = {
-    state: oldHook ? oldHook.state : initState,
-    queue: oldHook ? oldHook.queue : [],
+  const hook: HookContent = oldHook || {
+    state: initState,
+    queue: [],
   };
 
   const queueLength = hook.queue.length;

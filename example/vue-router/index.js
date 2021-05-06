@@ -13,17 +13,24 @@ const HelloWorld = {
 };
 
 const HelloTest = {
+  template: '<div>{{ hello }}</div>',
+
   data() {
     return {
       hello: 'hello-test!',
     };
   },
-  template: '<div>{{ hello }}</div>',
+  mounted() {
+    setTimeout(() => {
+      this.hello = 222;
+    }, 5000);
+  },
 };
 
 Vue.use(VueRouter);
 
 const routes = [
+  { path: '/', component: HelloTest },
   { path: '/index', component: HelloWorld },
   { path: '/test', component: HelloTest },
 ];

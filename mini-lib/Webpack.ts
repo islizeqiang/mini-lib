@@ -30,7 +30,9 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
       void 0,
       {
         ast: true,
-        comments: false,
+        // comments: false,
+        // TODO 支持sourcemap
+        // sourceMaps: 'inline',
         filename,
         presets: [
           [
@@ -86,8 +88,6 @@ const createModuleInfo = async (filePath: string, fileId?: string): Promise<Modu
     });
 
     const id = `'${typeof fileId === 'string' ? fileId : path.basename(filePath)}'`;
-
-    // 编译为 ES5
     const code = await generateCode(AST, id);
 
     return {
@@ -187,7 +187,7 @@ const pack = (graphItems: GraphItem[]) => {
     .map(
       (graphItem) =>
         `${graphItem.id}: {
-            factory: function (exports, require) { ${graphItem.code} },
+            factory: function (exports, require) { ${graphItem.code}\r\n },
             map: ${JSON.stringify(graphItem.map)},
           }
         `,
@@ -239,8 +239,10 @@ const main = async (entry: string, target?: string) => {
 //   const entry = path.join(entryDir, 'app.js');
 //   const output = path.join(entryDir, `app.out.js`);
 
-//   const { graphItems } = await analysisDependency(entry);
-//   fs.writeFileSync(output, pack(graphItems));
+//   const analysisResult = await analysisDependency(entry);
+//   if (analysisResult) {
+//     fs.writeFileSync(output, pack(analysisResult.graphItems));
+//   }
 // })();
 
 export default main;
