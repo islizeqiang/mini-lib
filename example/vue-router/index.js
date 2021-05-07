@@ -6,23 +6,23 @@ const { Vue } = window;
 const HelloWorld = {
   data() {
     return {
-      hello: 'hello-world!',
+      hello: 'Index!',
     };
   },
-  template: '<div>{{ hello }}</div>',
+  template: '<div><h1>{{ hello }}</h1><router-link to="/test">Test</router-link></div>',
 };
 
 const HelloTest = {
-  template: '<div>{{ hello }}</div>',
+  template: '<div><h1>{{ hello }}</h1><router-link to="/index">Index</router-link></div>',
 
   data() {
     return {
-      hello: 'hello-test!',
+      hello: 'Test!',
     };
   },
   mounted() {
     setTimeout(() => {
-      this.hello = 222;
+      this.hello = 'Test@@@!';
     }, 5000);
   },
 };

@@ -1,7 +1,6 @@
 interface IdleCallback {
   (deadline: { readonly didTimeout: boolean; timeRemaining: () => number }): void;
 }
-
 declare global {
   interface Window {
     requestIdleCallback: (
@@ -13,6 +12,38 @@ declare global {
     cancelIdleCallback: (handle: number) => void;
   }
 }
+type Dict<T> = Record<string, T>;
+interface HookContent {
+  state: unknown;
+  queue: unknown[];
+}
+type VirtualElementType = ((props: Dict<unknown>) => VirtualElement) | string;
+interface VirtualElementProps {
+  children?: VirtualElement[];
+  [propName: string]: unknown;
+}
+interface VirtualElement {
+  type: VirtualElementType;
+  props: VirtualElementProps;
+}
+interface FiberNode {
+  props: VirtualElementProps;
+  alternate: FiberNode | null;
+  type?: VirtualElementType;
+  return?: FiberNode;
+  dom?: Node | null;
+  effectTag?: string;
+  sibling?: FiberNode;
+  hooks?: HookContent[];
+  child?: FiberNode;
+}
+
+let wipRoot: FiberNode | null = null;
+let nextUnitOfWork: FiberNode | null = null;
+let currentRoot: FiberNode | null = null;
+let deletions: FiberNode[] = [];
+let wipFiber: FiberNode;
+let hookIndex: number = 0;
 
 void ((global: Window) => {
   const id = 1;
@@ -43,40 +74,7 @@ void ((global: Window) => {
   };
 })(window);
 
-type Dict<T> = Record<string, T>;
-interface HookContent {
-  state: unknown;
-  queue: unknown[];
-}
-type VirtualElementType = ((props: Dict<unknown>) => VirtualElement) | string;
-interface VirtualElementProps {
-  children?: VirtualElement[];
-  [propName: string]: unknown;
-}
-interface VirtualElement {
-  type: VirtualElementType;
-  props: VirtualElementProps;
-}
-
-interface FiberNode {
-  props: VirtualElementProps;
-  alternate: FiberNode | null;
-  type?: VirtualElementType;
-  return?: FiberNode;
-  dom?: Node | null;
-  effectTag?: string;
-  sibling?: FiberNode;
-  hooks?: HookContent[];
-  child?: FiberNode;
-}
-
-let wipRoot: FiberNode | null = null;
-let nextUnitOfWork: FiberNode | null = null;
-let currentRoot: FiberNode | null = null;
-let deletions: FiberNode[] = [];
-
-let wipFiber: FiberNode;
-let hookIndex: number = 0;
+const isDef = <T>(param: unknown): param is T => param !== void 0 && param !== null;
 
 const isObject = (obj: unknown): obj is Object =>
   obj instanceof Object && obj.constructor === Object;
@@ -154,43 +152,44 @@ const commitRoot = () => {
       }
       return parentFiber;
     }
-    return void 0;
+    return null;
   };
 
-  const commitDeletion = (fiberNode: FiberNode, parent: Node) => {
-    if (fiberNode.dom) {
-      parent.removeChild(fiberNode.dom);
-    } else if (fiberNode.child) {
-      commitDeletion(fiberNode.child, parent);
+  const commitDeletion = (parentDOM: FiberNode['dom'], DOM: Node) => {
+    if (isDef<Node>(parentDOM)) {
+      parentDOM.removeChild(DOM);
+    }
+  };
+
+  const commitReplacement = (parentDOM: FiberNode['dom'], DOM: Node) => {
+    if (isDef<Node>(parentDOM)) {
+      parentDOM.appendChild(DOM);
     }
   };
 
   const commitWork = (fiberNode?: FiberNode) => {
     if (fiberNode) {
-      const parentFiber = findParentFiber(fiberNode);
+      if (fiberNode.dom) {
+        const parentFiber = findParentFiber(fiberNode);
+        const parentDOM = parentFiber?.dom;
 
-      switch (fiberNode.effectTag) {
-        case 'REPLACEMENT':
-          if (parentFiber && parentFiber.dom && fiberNode.dom) {
-            parentFiber.dom.appendChild(fiberNode.dom);
-          }
-          break;
-        case 'DELETION':
-          if (parentFiber && parentFiber.dom) {
-            commitDeletion(fiberNode, parentFiber.dom);
-          }
-          break;
-        case 'UPDATE':
-          if (fiberNode.dom) {
+        switch (fiberNode.effectTag) {
+          case 'DELETION':
+            commitDeletion(parentDOM, fiberNode.dom);
+            break;
+          case 'REPLACEMENT':
+            commitReplacement(parentDOM, fiberNode.dom);
+            break;
+          case 'UPDATE':
             updateDOM(
               fiberNode.dom,
               fiberNode.alternate ? fiberNode.alternate.props : {},
               fiberNode.props,
             );
-          }
-          break;
-        default:
-          break;
+            break;
+          default:
+            break;
+        }
       }
 
       commitWork(fiberNode.child);
@@ -199,15 +198,14 @@ const commitRoot = () => {
   };
 
   for (const deletion of deletions) {
-    const parentFiber = findParentFiber(deletion);
-    if (parentFiber && parentFiber.dom) {
-      commitDeletion(deletion, parentFiber.dom);
+    if (deletion.dom) {
+      const parentFiber = findParentFiber(deletion);
+      commitDeletion(parentFiber?.dom, deletion.dom);
     }
   }
 
   if (wipRoot !== null) {
     commitWork(wipRoot.child);
-
     currentRoot = wipRoot;
   }
 

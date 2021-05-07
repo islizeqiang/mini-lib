@@ -36,7 +36,7 @@ class VueRouter {
         if (typeof this.$options !== 'undefined' && typeof this.$options.router !== 'undefined') {
           this._routerRoot = this;
           this._router = this.$options.router;
-          vue.util.defineReactive(this, 'current', this._router.history);
+          vue.util.defineReactive(this._router.history, 'current');
         } else {
           this._routerRoot = this.$parent._routerRoot;
         }
@@ -54,14 +54,26 @@ class VueRouter {
         const {
           history: { current },
           routesMap,
-        } = this._self._routerRoot._router;
+        } = this.$router;
         return h(routesMap[current]);
+      },
+    });
+
+    vue.component('router-link', {
+      props: {
+        to: {
+          type: String,
+          default: '',
+        },
+      },
+      render(h: any) {
+        return h('a', { attrs: { href: `#${this.to}` } }, this.$slots.default);
       },
     });
   }
 
   // 加载事件监听
-  init() {
+  init = () => {
     if (this.mode === 'hash') {
       if (!window.location.hash) {
         window.location.hash = '#/';
@@ -83,7 +95,7 @@ class VueRouter {
         this.history.current = window.location.pathname;
       });
     }
-  }
+  };
 }
 
 export default VueRouter;
