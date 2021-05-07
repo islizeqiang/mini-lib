@@ -18,9 +18,10 @@ const open = require('open-browser');
 const WebSocket = require('faye-websocket');
 const outputFileSystem = memfs_1.createFsFromVolume(new memfs_1.Volume());
 const entryDir = process.argv[2];
-const clientEntry = path_1.default.resolve(process.cwd(), `example/${entryDir}/index.js`);
-const serverEntry = path_1.default.resolve(process.cwd(), `example/${entryDir}/server.js`);
-const htmlFile = path_1.default.resolve(process.cwd(), `example/${entryDir}/index.html`);
+const appDirectory = fs_1.default.realpathSync(process.cwd());
+const clientEntry = path_1.default.resolve(appDirectory, `example/${entryDir}/index.js`);
+const serverEntry = path_1.default.resolve(appDirectory, `example/${entryDir}/server.js`);
+const htmlFile = path_1.default.resolve(appDirectory, `example/${entryDir}/index.html`);
 const injectFile = path_1.default.resolve(__dirname, 'injected.html');
 const iconFile = path_1.default.resolve(__dirname, 'favicon.ico');
 const clientFile = '/client.js';
@@ -120,9 +121,7 @@ const compile = async (compileFunctions) => {
     console.log();
     console.log(
       chalk_1.default.green.bold(
-        `Reload Successfully in ${((perf_hooks_1.performance.now() - startTime) / 1000).toFixed(
-          2,
-        )}s`,
+        `Successfully in ${((perf_hooks_1.performance.now() - startTime) / 1000).toFixed(2)}s`,
       ),
     );
   } catch (error) {

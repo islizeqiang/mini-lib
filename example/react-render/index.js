@@ -129,7 +129,6 @@ const getApp2 = () => {
         <Square
           value={this.props.squares[i]}
           onClick={() => {
-            console.log('i22: ', i);
             this.props.onClick(i);
           }}
         />

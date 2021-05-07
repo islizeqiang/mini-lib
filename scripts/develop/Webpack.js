@@ -13,7 +13,8 @@ const core_1 = require('@babel/core');
 const resolve_1 = __importDefault(require('resolve'));
 const builtins_1 = require('./builtins');
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-const cwd = process.cwd().split(path_1.default.sep).join('/');
+const appDirectory = fs_1.default.realpathSync(process.cwd());
+const cwd = appDirectory.split(path_1.default.sep).join('/');
 let moduleTarget = 'broswer';
 process.env.NODE_ENV = 'development';
 const generateCode = (ast, filename) =>
@@ -208,7 +209,7 @@ const main = async (entry, target) => {
   }
 };
 // void (async function test() {
-//   const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
+//   const entryDir = path.join(appDirectory, 'example', 'webpack-test');
 //   const entry = path.join(entryDir, 'app.js');
 //   const output = path.join(entryDir, `app.out.js`);
 //   const analysisResult = await analysisDependency(entry);

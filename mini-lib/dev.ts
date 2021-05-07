@@ -16,9 +16,10 @@ const WebSocket = require('faye-websocket');
 const outputFileSystem = createFsFromVolume(new Volume());
 const entryDir = process.argv[2];
 
-const clientEntry = path.resolve(process.cwd(), `example/${entryDir}/index.js`);
-const serverEntry = path.resolve(process.cwd(), `example/${entryDir}/server.js`);
-const htmlFile = path.resolve(process.cwd(), `example/${entryDir}/index.html`);
+const appDirectory = fs.realpathSync(process.cwd());
+const clientEntry = path.resolve(appDirectory, `example/${entryDir}/index.js`);
+const serverEntry = path.resolve(appDirectory, `example/${entryDir}/server.js`);
+const htmlFile = path.resolve(appDirectory, `example/${entryDir}/index.html`);
 const injectFile = path.resolve(__dirname, 'injected.html');
 const iconFile = path.resolve(__dirname, 'favicon.ico');
 
@@ -132,9 +133,7 @@ const compile = async (compileFunctions?: Function[]) => {
     }
     console.log();
     console.log(
-      chalk.green.bold(
-        `Reload Successfully in ${((performance.now() - startTime) / 1000).toFixed(2)}s`,
-      ),
+      chalk.green.bold(`Successfully in ${((performance.now() - startTime) / 1000).toFixed(2)}s`),
     );
   } catch (error) {
     const msg = typeof error.stack === 'string' ? error.stack : error.toString();

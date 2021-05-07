@@ -37,13 +37,13 @@
   "author": "",
   "license": "MIT",
   "lint-staged": {
-    "**/*.{js,ts,vue}": "eslint --ext .js,.ts,.vue",
+    "**/*.{js,ts,jsx,tsx,vue}": "eslint --ext .js,.ts,.jsx,.tsx,.vue",
     "**/*.{js,ts,md,json}": [
       "prettier --write"
     ]
   },
   "config": {
     "develop_scripts": "scripts/develop",
-    "entry": "vue-router"
+    "entry": "react-render"
   }
 }

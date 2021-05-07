@@ -19,7 +19,8 @@ interface GraphItem extends ModuleInfo {
 type DependencyMap = Map<string, string>;
 
 const resolveExtensions = ['.js', '.jsx', '.ts', '.tsx'];
-const cwd = process.cwd().split(path.sep).join('/');
+const appDirectory = fs.realpathSync(process.cwd());
+const cwd = appDirectory.split(path.sep).join('/');
 let moduleTarget: string = 'broswer';
 process.env.NODE_ENV = 'development';
 
@@ -235,7 +236,7 @@ const main = async (entry: string, target?: string) => {
 };
 
 // void (async function test() {
-//   const entryDir = path.join(process.cwd(), 'example', 'webpack-test');
+//   const entryDir = path.join(appDirectory, 'example', 'webpack-test');
 //   const entry = path.join(entryDir, 'app.js');
 //   const output = path.join(entryDir, `app.out.js`);
 
