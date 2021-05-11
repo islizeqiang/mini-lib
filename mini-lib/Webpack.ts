@@ -44,14 +44,16 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
               },
             },
           ],
-          '@babel/preset-typescript',
+          // '@babel/preset-typescript',
         ],
         plugins: [
           [
             '@babel/plugin-transform-react-jsx',
-            // {
-            //   pragma: 'createElement',
-            // },
+            {
+              runtime: 'classic',
+              // runtime: 'automatic',
+              // pragma: 'createElement',
+            },
           ],
           '@babel/plugin-transform-typescript',
         ],

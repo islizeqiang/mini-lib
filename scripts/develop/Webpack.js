@@ -37,14 +37,16 @@ const generateCode = (ast, filename) =>
               },
             },
           ],
-          '@babel/preset-typescript',
+          // '@babel/preset-typescript',
         ],
         plugins: [
           [
             '@babel/plugin-transform-react-jsx',
-            // {
-            //   pragma: 'createElement',
-            // },
+            {
+              runtime: 'classic',
+              // runtime: 'automatic',
+              // pragma: 'createElement',
+            },
           ],
           '@babel/plugin-transform-typescript',
         ],

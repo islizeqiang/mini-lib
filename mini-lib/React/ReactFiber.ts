@@ -45,6 +45,14 @@ let deletions: FiberNode[] = [];
 let wipFiber: FiberNode;
 let hookIndex: number = 0;
 
+const Fragment = Symbol.for('react.fragment');
+
+const isDef = <T>(param: unknown): param is T => param !== void 0 && param !== null;
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+const isObject = (obj: unknown): obj is Object =>
+  obj instanceof Object && obj.constructor === Object;
+
 void ((global: Window) => {
   const id = 1;
   const fps = Number((1000 / 60).toFixed(2));
@@ -73,11 +81,6 @@ void ((global: Window) => {
     return id;
   };
 })(window);
-
-const isDef = <T>(param: unknown): param is T => param !== void 0 && param !== null;
-
-const isObject = (obj: unknown): obj is Object =>
-  obj instanceof Object && obj.constructor === Object;
 
 const createTextElement = (text: string): VirtualElement => ({
   type: 'TEXT',
@@ -174,9 +177,6 @@ const commitRoot = () => {
         const parentDOM = parentFiber?.dom;
 
         switch (fiberNode.effectTag) {
-          case 'DELETION':
-            commitDeletion(parentDOM, fiberNode.dom);
-            break;
           case 'REPLACEMENT':
             commitReplacement(parentDOM, fiberNode.dom);
             break;
@@ -254,7 +254,6 @@ const reconcileChildren = (fiberNode: FiberNode, elements: VirtualElement[] = []
     }
     // 类型不同 但存在老元素
     if (!isSameType && oldFiberNode) {
-      oldFiberNode.effectTag = 'DELETION';
       deletions.push(oldFiberNode);
     }
 
@@ -281,7 +280,7 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
       wipFiber.hooks = [];
       hookIndex = 0;
       if (typeof Object.getPrototypeOf(type).REACT_COMPONENT !== 'undefined') {
-        const C = (type as unknown) as typeof Component;
+        const C = type as unknown as typeof Component;
         const component = new C(fiberNode.props);
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const [state, setState] = useState(component.state);
@@ -300,6 +299,11 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
         fiberNode.dom = createDOM(fiberNode);
       }
       reconcileChildren(fiberNode, fiberNode.props.children);
+      break;
+    case 'symbol':
+      if (type === Fragment) {
+        reconcileChildren(fiberNode, fiberNode.props.children);
+      }
       break;
     default:
       if (typeof fiberNode.props !== 'undefined') {
@@ -334,6 +338,7 @@ const workLoop: IdleCallback = (deadline) => {
 };
 
 const render = (element: VirtualElement, container: Node) => {
+  currentRoot = null;
   wipRoot = {
     type: 'div',
     dom: container,
@@ -415,4 +420,5 @@ export default {
   render,
   useState,
   Component,
+  Fragment,
 };
