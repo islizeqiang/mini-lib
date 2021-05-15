@@ -19,8 +19,7 @@
     "fs-extra": "^10.0.0",
     "memfs": "^3.2.2",
     "open-browser": "file:lib/open-browser",
-    "resolve": "^1.20.0",
-    "vue-router": "^3.5.1"
+    "resolve": "^1.20.0"
   },
   "devDependencies": {
     "@types/babel__core": "^7.1.14",

@@ -69,7 +69,7 @@ class VueRouter {
       render(h: any) {
         const { mode, push } = this.$router;
         const isHash = mode === 'hash';
-        const href = `${isHash ? '#' : ''}${this.to}`;
+        const href = `${isHash ? '#' : ''}${this.to}`.trim();
         const handler = (e: Event) => {
           e.preventDefault();
           if (isHash) {
