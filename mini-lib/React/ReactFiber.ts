@@ -55,7 +55,7 @@ const isObject = (obj: unknown): obj is Object =>
 
 void ((global: Window) => {
   const id = 1;
-  const fps = Number((1000 / 60).toFixed(2));
+  const fps = 1000 / 60;
   let frameDeadline: number;
   let penddingCallback: IdleCallback;
   const channel = new MessageChannel();
@@ -66,14 +66,14 @@ void ((global: Window) => {
   };
 
   channel.port2.onmessage = () => {
-    if (typeof penddingCallback !== 'undefined') {
+    if (typeof penddingCallback === 'function') {
       penddingCallback(deadline);
     }
   };
 
   global.requestIdleCallback = (callback: IdleCallback) => {
-    global.requestAnimationFrame((rafTime) => {
-      frameDeadline = rafTime + fps;
+    global.requestAnimationFrame((frameTime) => {
+      frameDeadline = frameTime + fps;
       penddingCallback = callback;
       channel.port1.postMessage(null);
     });
@@ -326,7 +326,7 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
 };
 
 const workLoop: IdleCallback = (deadline) => {
-  while (nextUnitOfWork && deadline.timeRemaining() > 5) {
+  while (nextUnitOfWork && deadline.timeRemaining() > 1) {
     nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
   }
 

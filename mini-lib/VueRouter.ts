@@ -67,13 +67,29 @@ class VueRouter {
         },
       },
       render(h: any) {
-        return h('a', { attrs: { href: `#${this.to}` } }, this.$slots.default);
+        const { mode, push } = this.$router;
+        const isHash = mode === 'hash';
+        const href = `${isHash ? '#' : ''}${this.to}`;
+        const handler = (e: Event) => {
+          e.preventDefault();
+          if (isHash) {
+            window.location.hash = href;
+          } else {
+            push(href);
+          }
+        };
+        return h('a', { attrs: { href }, on: { click: handler } }, this.$slots.default);
       },
     });
   }
 
+  push = (pathname: string) => {
+    window.history.pushState(null, '', pathname);
+    this.history.current = pathname;
+  };
+
   // 加载事件监听
-  init = () => {
+  private init = () => {
     if (this.mode === 'hash') {
       if (!window.location.hash) {
         window.location.hash = '#/';

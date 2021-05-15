@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import chalk from 'chalk';
 import { performance } from 'perf_hooks';
 import { createFsFromVolume, Volume } from 'memfs';
@@ -144,6 +145,7 @@ const compile = async (compileFunctions?: Function[]) => {
 const debounceCompile = (<T extends Function, Callback extends Function>(func: T, ms: number) => {
   let timeoutId: NodeJS.Timeout;
   const callbackStack = new Set<Callback>();
+  // eslint-disable-next-line func-names
   return function (this: T, callback: Callback) {
     callbackStack.add(callback);
     if (timeoutId !== void 0) clearTimeout(timeoutId);

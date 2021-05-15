@@ -11,5 +11,6 @@ module.exports = {
     'max-classes-per-file': 0,
     'no-unused-vars': 0,
     'global-require': 0,
+    '@typescript-eslint/ban-types': 0,
   },
 };
