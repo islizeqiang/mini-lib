@@ -13,7 +13,7 @@ const HelloWorld = {
 };
 
 const HelloTest = {
-  template: '<div><h1>{{ hello }}</h1><router-link to="/index">Index</router-link></div>',
+  template: '<div><h1>{{ hello1 }}</h1><router-link to="/index">Index</router-link></div>',
 
   data() {
     return {
@@ -24,6 +24,11 @@ const HelloTest = {
     setTimeout(() => {
       this.hello = 'Test@@@!';
     }, 5000);
+  },
+  computed: {
+    hello1() {
+      return `${this.hello}哈哈哈`;
+    },
   },
 };
 

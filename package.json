@@ -44,6 +44,6 @@
   },
   "config": {
     "develop_scripts": "scripts/develop",
-    "entry": "vue-router"
+    "entry": "react-router"
   }
 }
