@@ -929,7 +929,7 @@
     "@babel/plugin-transform-react-jsx-development" "^7.12.17"
     "@babel/plugin-transform-react-pure-annotations" "^7.12.1"
 
-"@babel/preset-typescript@^7.12.7", "@babel/preset-typescript@^7.13.0":
+"@babel/preset-typescript@^7.12.7":
   version "7.13.0"
   resolved "https://registry.npm.taobao.org/@babel/preset-typescript/download/@babel/preset-typescript-7.13.0.tgz#ab107e5f050609d806fbb039bec553b33462c60a"
   integrity sha1-qxB+XwUGCdgG+7A5vsVTszRixgo=

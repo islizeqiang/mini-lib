@@ -44,7 +44,6 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
               },
             },
           ],
-          // '@babel/preset-typescript',
         ],
         plugins: [
           [
@@ -55,6 +54,7 @@ const generateCode = (ast: babel.types.File, filename: string): Promise<string> 
               // pragma: 'createElement',
             },
           ],
+          // path.join(appDirectory, 'mini-lib', 'jsx-plugin'),
           '@babel/plugin-transform-typescript',
         ],
         babelrc: false,

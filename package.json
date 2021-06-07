@@ -13,7 +13,6 @@
     "@babel/core": "^7.14.0",
     "@babel/parser": "^7.14.1",
     "@babel/preset-env": "^7.14.1",
-    "@babel/preset-typescript": "^7.13.0",
     "@babel/traverse": "^7.14.0",
     "faye-websocket": "^0.11.3",
     "fs-extra": "^10.0.0",
@@ -44,6 +43,6 @@
   },
   "config": {
     "develop_scripts": "scripts/develop",
-    "entry": "vue-router"
+    "entry": "react-router"
   }
 }
