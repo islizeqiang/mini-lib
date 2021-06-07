@@ -5,6 +5,7 @@ var __importDefault =
     return mod && mod.__esModule ? mod : { default: mod };
   };
 Object.defineProperty(exports, '__esModule', { value: true });
+/* eslint-disable no-console */
 const chalk_1 = __importDefault(require('chalk'));
 const perf_hooks_1 = require('perf_hooks');
 const memfs_1 = require('memfs');
@@ -132,6 +133,7 @@ const compile = async (compileFunctions) => {
 const debounceCompile = ((func, ms) => {
   let timeoutId;
   const callbackStack = new Set();
+  // eslint-disable-next-line func-names
   return function (callback) {
     callbackStack.add(callback);
     if (timeoutId !== void 0) clearTimeout(timeoutId);

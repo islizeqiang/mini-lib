@@ -173,9 +173,9 @@ const pack = (graphItems) => {
     .join(',');
   const iifeBundler = `(() => {
     const modules = { ${modules} };
-    const moduleCache = {};
+    const moduleCache = new Map();
     const _require = (moduleId) => {
-      const cachedModule = moduleCache[moduleId];
+      const cachedModule = moduleCache.get(moduleId);
       if (cachedModule !== void 0) {
         return cachedModule.exports;
       }
@@ -183,9 +183,9 @@ const pack = (graphItems) => {
       const __require = (declarationName) =>
         Boolean(map[declarationName]) ? _require(map[declarationName]) : require(declarationName);
       const module = {
-        exports: {},
+        exports: Object.create(null),
       };
-      moduleCache[moduleId] = module;
+      moduleCache.set(moduleId, module);
       factory.call(module.exports, module.exports, __require);
       return module.exports;
     };
