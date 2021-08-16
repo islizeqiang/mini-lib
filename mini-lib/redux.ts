@@ -20,9 +20,12 @@ type Middleware = (store: MiddlewareAPI) => (next: Dispatch) => (action: Action)
 type ApplyMiddleware = (...middlewares: Middleware[]) => Enhancer;
 
 // utils
-type Compose = (...funcs: Function[]) => Function;
-const compose: Compose = (...funcs) =>
-  funcs.reduce((a, b) => (...args: unknown[]) => a(b(...args)));
+const compose = (...funcs: Function[]) =>
+  funcs.reduce(
+    (a, b) =>
+      (...args: unknown[]) =>
+        a(b(...args)),
+  );
 
 //* 创建store
 export const createStore: CreateStore = (reducer, enhancer) => {
@@ -57,20 +60,25 @@ export const createStore: CreateStore = (reducer, enhancer) => {
 };
 
 //* 结合reducers
-export const combineReducers = (reducers: Reducers) => (state: State = {}, action: Action) => {
-  const nextState = {};
-  for (const [key, reducer] of Object.entries(reducers)) {
-    const previousStateForKey = state[key];
-    const nextStateForKey = reducer(previousStateForKey, action);
-    nextState[key] = nextStateForKey;
-  }
-  return nextState;
-};
+export const combineReducers =
+  (reducers: Reducers) =>
+  (state: State = {}, action: Action) => {
+    const nextState = {};
+    for (const [key, reducer] of Object.entries(reducers)) {
+      const previousStateForKey = state[key];
+      const nextStateForKey = reducer(previousStateForKey, action);
+      nextState[key] = nextStateForKey;
+    }
+    return nextState;
+  };
 
 //* 添加中间件
-export const applyMiddleware: ApplyMiddleware = (...middlewares) => (create) => (reducer) => {
-  const store = create(reducer);
-  const chain = middlewares.map((middleware) => middleware(store));
-  // 增强dispatch
-  return { ...store, dispatch: compose(...chain)(store.dispatch) };
-};
+export const applyMiddleware: ApplyMiddleware =
+  (...middlewares) =>
+  (create) =>
+  (reducer) => {
+    const store = create(reducer);
+    const chain = middlewares.map((middleware) => middleware(store));
+    // 增强dispatch
+    return { ...store, dispatch: compose(...chain)(store.dispatch) };
+  };

@@ -10,27 +10,29 @@
     "postinstall": "husky install"
   },
   "dependencies": {
-    "@babel/core": "^7.14.0",
-    "@babel/parser": "^7.14.1",
-    "@babel/preset-env": "^7.14.1",
-    "@babel/traverse": "^7.14.0",
-    "faye-websocket": "^0.11.3",
+    "@babel/core": "^7.14.8",
+    "@babel/parser": "^7.14.8",
+    "@babel/preset-env": "^7.14.8",
+    "@babel/traverse": "^7.14.8",
+    "faye-websocket": "^0.11.4",
     "fs-extra": "^10.0.0",
     "memfs": "^3.2.2",
-    "open-browser": "file:lib/open-browser",
+    "open-browser": "link:lib/open-browser",
     "resolve": "^1.20.0"
   },
   "devDependencies": {
-    "@types/babel__core": "^7.1.14",
-    "@types/express": "^4.17.11",
-    "@types/fs-extra": "^9.0.11",
-    "@types/node": "^15.0.2",
-    "@types/resolve": "^1.20.0",
-    "code-fabric": "^1.4.0",
+    "@types/babel__core": "^7.1.15",
+    "@types/express": "^4.17.13",
+    "@types/fs-extra": "^9.0.12",
+    "@types/node": "^15.14.3",
+    "@types/resolve": "^1.20.1",
+    "code-fabric": "^1.5.0",
+    "eslint": "^7.32.0",
     "husky": "^6.0.0",
-    "lint-staged": "^11.0.0",
-    "nodemon": "^2.0.7",
-    "typescript": "^4.2.3"
+    "lint-staged": "^11.1.1",
+    "nodemon": "^2.0.12",
+    "prettier": "^2.3.2",
+    "typescript": "^4.3.5"
   },
   "keywords": [],
   "author": "",
@@ -43,6 +45,6 @@
   },
   "config": {
     "develop_scripts": "scripts/develop",
-    "entry": "react-router"
+    "entry": "react-render"
   }
 }

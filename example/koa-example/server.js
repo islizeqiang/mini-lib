@@ -4,13 +4,27 @@ import serve from '../../mini-lib/KoaStatic';
 import { PORT } from './config';
 
 const path = require('path');
+const fs = require('fs');
 const app = new Koa();
 const router = new Router();
+
+const sleep = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 router.get('/', async (ctx) => {
   ctx.status = 200;
   ctx.body = 'Hello World';
 });
+
+// router.get('/test.jpg', async (ctx) => {
+//   await sleep(3000);
+//   ctx.status = 200;
+//   ctx.body = fs.createReadStream(
+//     path.resolve(process.cwd(), 'example', 'koa-example', 'public', 'test.jpg'),
+//   );
+// });
 
 router.get('/api/get', async (ctx) => {
   ctx.status = 200;
