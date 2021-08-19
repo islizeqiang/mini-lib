@@ -2,6 +2,11 @@ import React from '../../mini-lib/React/ReactFiber';
 // import React from '../../mini-lib/React/ReactRange';
 // import '../../lib/react';
 // import '../../lib/react-dom';
+// window.process = {
+//   env: {
+//     NODE_ENV: 'development',
+//   },
+// };
 
 const getApp1 = () => {
   function Count2(props) {
@@ -308,5 +313,27 @@ const getApp3 = () => {
 };
 
 const App = getApp3();
+const { useState, useRef } = React;
+
+const MyComponent = () => {
+  const [flag, setFlag] = useState(1);
+  const flagRef = useRef();
+  flagRef.current = flag;
+
+  function dealClick() {
+    setFlag(2);
+    // setFlag((prev) => prev + 2);
+    setTimeout(() => {
+      setFlag((prev) => prev + 2);
+    });
+    // setTimeout(() => {
+    //   setFlag((flag) => !flag);
+    // }, 2000);
+  }
+
+  return <button onClick={dealClick}>{flag}</button>;
+};
+
+const App = MyComponent;
 
 React.render(<App title="测试" />, document.getElementById('root'));

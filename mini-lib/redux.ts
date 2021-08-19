@@ -20,8 +20,7 @@ type Middleware = (store: MiddlewareAPI) => (next: Dispatch) => (action: Action)
 type ApplyMiddleware = (...middlewares: Middleware[]) => Enhancer;
 
 // utils
-type Compose = (...funcs: Function[]) => Function;
-const compose: Compose = (...funcs) =>
+const compose = (...funcs: Function[]) =>
   funcs.reduce((a, b) => (...args: unknown[]) => a(b(...args)));
 
 //* 创建store

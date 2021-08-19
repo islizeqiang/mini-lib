@@ -63,7 +63,7 @@ class Koa extends EventEmitter {
 
   public use = (fn: Function) => {
     if (typeof fn !== 'function') {
-      throw new TypeError('middleware must be a function!');
+      throw new TypeError('Middleware must be a function!');
     }
     this.middleware.push(fn);
     return this;
