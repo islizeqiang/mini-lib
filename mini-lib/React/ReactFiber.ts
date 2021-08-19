@@ -280,7 +280,7 @@ const performUnitOfWork = (fiberNode: FiberNode): FiberNode | null => {
       wipFiber.hooks = [];
       hookIndex = 0;
       if (typeof Object.getPrototypeOf(type).REACT_COMPONENT !== 'undefined') {
-        const C = type as unknown as typeof Component;
+        const C = (type as unknown) as typeof Component;
         const component = new C(fiberNode.props);
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const [state, setState] = useState(component.state);
@@ -368,6 +368,7 @@ function useState(initState: unknown): [unknown, (value: unknown) => void] {
   let oldHook: undefined | HookContent;
 
   if (wipFiber.alternate && wipFiber.alternate.hooks) {
+    // 找到之前的 hook
     oldHook = wipFiber.alternate.hooks[hookIndex];
   }
 

@@ -1,5 +1,7 @@
 import React from '../../mini-lib/React/ReactFiber';
 // import React from '../../mini-lib/React/ReactRange';
+// import '../../lib/react';
+// import '../../lib/react-dom';
 
 const getApp1 = () => {
   function Count2(props) {
@@ -305,6 +307,6 @@ const getApp3 = () => {
   return Home;
 };
 
-const App = getApp2();
+const App = getApp3();
 
 React.render(<App title="测试" />, document.getElementById('root'));
