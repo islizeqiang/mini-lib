@@ -312,28 +312,6 @@ const getApp3 = () => {
   return Home;
 };
 
-const App = getApp3();
-const { useState, useRef } = React;
-
-const MyComponent = () => {
-  const [flag, setFlag] = useState(1);
-  const flagRef = useRef();
-  flagRef.current = flag;
-
-  function dealClick() {
-    setFlag(2);
-    // setFlag((prev) => prev + 2);
-    setTimeout(() => {
-      setFlag((prev) => prev + 2);
-    });
-    // setTimeout(() => {
-    //   setFlag((flag) => !flag);
-    // }, 2000);
-  }
-
-  return <button onClick={dealClick}>{flag}</button>;
-};
-
-const App = MyComponent;
+const App = getApp2();
 
 React.render(<App title="测试" />, document.getElementById('root'));
